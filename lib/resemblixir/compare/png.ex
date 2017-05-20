@@ -1,5 +1,4 @@
 defmodule Resemblixir.Compare.Png do
-  alias Resemblixir.Compare.Png.{Text, DataContent}
   alias Imagineer.Image.PNG.Chunk
 
   @signature <<0x89, ?P, ?N, ?G, 0x0D, 0x0A, 0x1A, 0x0A>>
@@ -27,7 +26,7 @@ defmodule Resemblixir.Compare.Png do
     raise "Png.decode/1 can only decode .png files!\n\n Received: \n #{inspect(error)}"
   end
 
-  defp decode_chunks(<<length :: 32, "IEND", _::binary>>, %__MODULE__{} = image) do
+  defp decode_chunks(<<_length :: 32, "IEND", _::binary>>, %__MODULE__{} = image) do
     image
   end
   defp decode_chunks(<<length :: 32,
