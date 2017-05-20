@@ -2,6 +2,22 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
+config :resemblixir, Resemblixir.Web.Endpoint,
+  url: [host: "localhost"],
+  secret_key_base: "aaVOrfv/582KHj2fDluDBbrA0TOWBQkABYxjpfRUIp/dF9l/pGt5OlYNODmWXb5K",
+  render_errors: [view: Resemblixir.Web.ErrorView, accepts: ~w(html json)],
+  pubsub: [name: Resemblixir.PubSub,
+           adapter: Phoenix.PubSub.PG2]
+
+# Configures Elixir's Logger
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:request_id]
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it overrides the configuration defined above.
+import_config "#{Mix.env}.exs"
+
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
 # file won't be loaded nor affect the parent project. For this reason,
