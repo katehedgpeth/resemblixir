@@ -28,6 +28,7 @@ defmodule Resemblixir.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+     [
+     {:imagineer, "~> 0.3"}]
   end
 end
