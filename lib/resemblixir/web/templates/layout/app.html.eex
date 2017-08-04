@@ -8,6 +8,9 @@
     <meta name="author" content="">
     <script>
       window.websocketUrl = "ws://<%= @host %>:<%= @port %>/socket/websocket"
+      <% IO.inspect assigns[:img_1] %>
+      window.image_1 = <%= if assigns[:img_1] do raw(assigns[:img_1]) else "null" end %>;
+      window.image_2 = <%= if assigns[:img_2] do raw(assigns[:img_2]) else "null" end %>;
     </script>
 
     <title>Hello Resemblixir2!</title>
@@ -24,11 +27,19 @@
       <!-- <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p> -->
 
-      <main role="main" id="elm-main"></main>
+      <main role="main" id="elm-main">
+
+      </main>
 
     </div> <!-- /container -->
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/main.js") %>"></script>
-    <script>require('js/initialize');</script>
+    <script>
+      var resemble = require('js/resemble');
+      if (window.image_1 && window.image_2) {
+        resemble(window.image_1).compareTo(window.image_2).onComplete(function(data) {
+          console.log(data);
+        })
+      }
+    </script>
   </body>
 </html>
