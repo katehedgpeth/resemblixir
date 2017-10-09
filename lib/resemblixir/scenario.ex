@@ -1,6 +1,6 @@
 defmodule Resemblixir.Scenario do
   use GenServer
-  alias Resemblixir.{Breakpoint, Paths, Compare, MissingReferenceError}
+  alias Resemblixir.{Breakpoint, Compare}
   defstruct [:name, :url, :breakpoints, :folder, passed: [], failed: []]
 
   @type t :: %__MODULE__{
@@ -11,9 +11,9 @@ defmodule Resemblixir.Scenario do
     failed: [Compare.t]
   }
 
-  def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _ = folder} = scenario, parent)
+  def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _} = scenario, parent)
   when is_binary(name) and is_binary(url) and is_list(breakpoints) and length(breakpoints) > 0 do
-    {:ok, pid} = GenServer.start_link(__MODULE__, {scenario, parent})
+    {:ok, _pid} = GenServer.start_link(__MODULE__, {scenario, parent})
   end 
 
   def init({%__MODULE__{} = scenario, parent}) do
@@ -70,7 +70,4 @@ defmodule Resemblixir.Scenario do
   def terminate(:normal, {scenario, parent, []}) do
     send parent, {:error, scenario}
   end
-
-  defp finish(%__MODULE__{failed: []} = scenario), do: {:ok, scenario}
-  defp finish(%__MODULE__{} = scenario), do: {:error, scenario}
 end

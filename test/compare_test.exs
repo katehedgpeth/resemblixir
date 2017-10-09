@@ -1,5 +1,5 @@
 defmodule Resemblixir.CompareTest do
-  alias Resemblixir.{Paths, Compare, Scenario}
+  alias Resemblixir.{Compare, Scenario}
   use ExUnit.Case, async: true
   setup_all do
     test_img_folder = Path.join([Application.app_dir(:resemblixir), "priv"])

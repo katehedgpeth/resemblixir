@@ -34,7 +34,7 @@ defmodule Resemblixir.Mixfile do
   defp deps do
     [
       {:wallaby, "~> 0.19"},
-      {:bypass, "~> 0.8"}
+      {:bypass, "~> 0.8", only: [:test]}
     ]
   end
 end

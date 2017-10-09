@@ -19,10 +19,11 @@ defmodule Resemblixir.MixTaskTest do
       {:ok, _} = References.generate(scenarios)
 
       Application.put_env(:resemblixir, :scenarios, scenarios)
-      assert %Resemblixir{failed: [], passed: [%Scenario{failed: [], passed: [xs: %Compare{}]}]} = Mix.Tasks.Resemblixir.run(scenarios)
+      assert {:ok, %Resemblixir{failed: [], passed: [%Scenario{failed: [], passed: [xs: %Compare{}]}]}} = Mix.Tasks.Resemblixir.run(scenarios)
     end
 
     test "raises Resemblixir.ScenarioConfigError when there are no tests to run" do
+      :ok = Application.put_env(:resemblixir, :scenarios, [])
       assert_raise(Resemblixir.ScenarioConfigError, fn -> Mix.Tasks.Resemblixir.run([]) end)
     end
   end

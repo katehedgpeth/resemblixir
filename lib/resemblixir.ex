@@ -59,6 +59,14 @@ defmodule Resemblixir do
     maybe_finish_process({remaining, parent, result})
   end
 
+  def handle_info({:error, %Scenario{} = scenario}, {scenarios, parent, result}) do
+    result = %{result | failed: [scenario | result.failed]}
+    {_, remaining} = Keyword.pop(scenarios, String.to_atom(scenario.name))
+    maybe_finish_process({remaining, parent, result})
+  end
+
+  def handle_info({:error, %Scenario{} = _scenario, {_breakpoint_name, _error}}, state), do: {:noreply, state}
+
   def handle_info(message, {scenarios, parent, result}) do
     IO.inspect message, label: "unexpected message in Resemblixir"
     {:noreply, {scenarios, parent, result}}

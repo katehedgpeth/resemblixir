@@ -33,3 +33,10 @@ defmodule Resemblixir.MissingReferenceError do
     %__MODULE__{message: "Reference file not found at path: #{args[:path]}"}
   end
 end
+
+defmodule Resemblixir.NoBreakpointsError do
+  defexception [ message: nil, scenario: nil ]
+  def exception(args) do
+    %__MODULE__{message: "Scenario #{args[:scenario]} has no breakpoints; please define a Keyword list of breakpoints for this scenario."}
+  end
+end

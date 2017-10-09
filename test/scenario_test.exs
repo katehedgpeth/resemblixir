@@ -1,13 +1,12 @@
 defmodule Resemblixir.ScenarioTest do
-  alias Resemblixir.{Paths, Scenario, TestHelpers, Compare}
+  alias Resemblixir.{Paths, Scenario, TestHelpers}
   use ExUnit.Case, async: true
 
-  setup_all do
+  setup do
     ref_folder = Paths.reference_image_dir()
     :ok = File.mkdir_p(ref_folder)
     tests_folder = Paths.tests_dir()
     :ok = File.mkdir_p(tests_folder)
-    test_folder = Paths.new_test_name()
     id = [:positive]
          |> System.unique_integer()
          |> Integer.to_string()
@@ -15,7 +14,7 @@ defmodule Resemblixir.ScenarioTest do
     test_name = Paths.new_test_name()
     test_folder = Path.join([tests_folder, test_name])
     assert test_folder == Path.join([File.cwd!(), "priv", "resemblixir", "test_images", test_name])
-    assert :ok = File.mkdir(test_folder)
+    assert :ok = File.mkdir_p(test_folder)
 
     bypass = Bypass.open()
     Bypass.expect bypass, fn conn ->
@@ -53,6 +52,7 @@ defmodule Resemblixir.ScenarioTest do
 
     test "returns {:error, %MissingReferenceError{}} when any reference file is missing", %{scenario: scenario} do
       assert {:ok, pid} = Scenario.run(%{scenario | breakpoints: [xl: 800]}, self())
+      assert is_pid(pid)
       assert_receive {:error, %Scenario{}}
     end
   end

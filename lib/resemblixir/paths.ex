@@ -54,9 +54,12 @@ defmodule Resemblixir.Paths do
   end
 
   def new_test_name do
-    [date_string | _] = DateTime.utc_now()
-                        |> DateTime.to_iso8601(:basic) 
-                        |> String.split(".")
-    "test_" <> String.replace(date_string, "T", "")
+    date = DateTime.utc_now()
+           |> DateTime.to_iso8601(:basic)
+           |> String.replace(".", "")
+           |> String.replace("T", "")
+           |> String.replace("Z", "")
+
+    "test_" <> date
   end
 end

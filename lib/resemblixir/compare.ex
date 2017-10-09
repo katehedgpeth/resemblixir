@@ -1,9 +1,9 @@
 defmodule Resemblixir.Compare do
   use GenServer
   alias Resemblixir.Scenario
-  alias Wallaby.Session
 
-  defstruct [:test, :scenario, :breakpoint, :mismatch_percentage, :raw_mismatch_percentage, :is_same_dimensions, :analysis_time,
+  defstruct [:test, :scenario, :breakpoint, :mismatch_percentage,
+             :raw_mismatch_percentage, :is_same_dimensions, :analysis_time,
              dimension_difference: %{height: nil, width: nil},
              diff_bounds: %{top: nil, bottom: nil, left: nil, right: nil},
              images: %{ref: nil, test: nil}]
@@ -56,17 +56,7 @@ defmodule Resemblixir.Compare do
   def format({:error, error}), do: {:error, error}
   def format(error), do: {:error, {:unexpected_error, error}}
 
-  defp format_diff(%{height: height, width: width, top: top, bottom: bottom, diffBounds: bounds}) do
-    %{
-      height: height,
-      width: width,
-      top: top,
-      bottom: bottom,
-      diff_bounds: bounds
-    }
-  end
-
-  defp analyze_result({:error, error}, _), do: {:error, {:json_error, error}}
+  defp analyze_result({:error, error}), do: {:error, {:json_error, error}}
   defp analyze_result(%__MODULE__{raw_mismatch_percentage: 0} = result), do: {:ok, result}
   defp analyze_result(%__MODULE__{} = result), do: {:error, result}
 
