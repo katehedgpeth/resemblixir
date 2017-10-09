@@ -7,8 +7,12 @@ defmodule Resemblixir.Mixfile do
      elixir: "~> 1.4",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     elixirc_paths: elixirc_paths(Mix.env),
      deps: deps()]
   end
+
+  def elixirc_paths(:test), do: ["lib", "test/support"]
+  def elixirc_paths(_), do: ["lib"]
 
   # Configuration for the OTP application
   #
@@ -28,6 +32,9 @@ defmodule Resemblixir.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:wallaby, "~> 0.19"},
+      {:bypass, "~> 0.8"}
+    ]
   end
 end
