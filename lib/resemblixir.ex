@@ -16,7 +16,7 @@ defmodule Resemblixir do
     run(get_scenarios(), opts)
   end
   def run([], _) do
-    raise %Resemblixir.NoTestsError{}
+    raise %Resemblixir.NoScenariosError{}
   end
   def run([%Scenario{} | _] = scenarios, opts) do
     {:ok, pid} = GenServer.start_link(__MODULE__, {scenarios, self()})

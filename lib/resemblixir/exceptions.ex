@@ -1,4 +1,4 @@
-defmodule Resemblixir.NoTestsError do
+defmodule Resemblixir.NoScenariosError do
   defexception [message: "No scenarios provided for Resemblixir to run! Assign scenarios to :scenarios in your :resemblixir config."]
   def exception(_) do
     %__MODULE__{} 
@@ -6,8 +6,8 @@ defmodule Resemblixir.NoTestsError do
 end
 
 defmodule Resemblixir.ScenarioConfigError do
-  defexception [message: nil, scenarios: []]
-  def exeception(args) do
+  defexception scenarios: []
+  def message(args) do
 
     message = """
     Resemblixir expects scenarios to be a list of %Resemblixir.Scenario{} structs, and for them to be accessible at `Application.get_env(:resemblixir, :scenarios)`.
@@ -20,22 +20,20 @@ defmodule Resemblixir.ScenarioConfigError do
 
           `config :resemblixir, scenarios: {MyApp.Resemblixir.Scenarios, :config, []}`
 
-    Scenarios found:
-    #{args[:scenarios]}
+    Application.get_env(:resemblixir, :scenarios): #{:resemblixir |> Application.get_env(:scenarios) |> inspect()}
     """
-    %__MODULE__{message: message, scenarios: args[:scenarios]}
   end
 end
 
 defmodule Resemblixir.MissingReferenceError do
-  defexception [ message: nil, path: nil, breakpoint: nil ]
+  defexception [:message, :path, :breakpoint]
   def exception(args) do
     %__MODULE__{message: "Reference file not found at path: #{args[:path]}"}
   end
 end
 
 defmodule Resemblixir.NoBreakpointsError do
-  defexception [ message: nil, scenario: nil ]
+  defexception [:message, :scenario]
   def exception(args) do
     %__MODULE__{message: "Scenario #{args[:scenario]} has no breakpoints; please define a Keyword list of breakpoints for this scenario."}
   end
