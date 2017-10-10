@@ -23,7 +23,7 @@ defmodule Resemblixir.References do
 
     scenarios
     |> Enum.map(& struct(Scenario, Enum.into(&1, [])))
-    |> Task.async_stream(&generate_scenario/1)
+    |> Task.async_stream(&generate_scenario/1, timeout: 60_000)
     |> Enum.reduce({:ok, []}, &await_scenario/2)
   end
 
@@ -35,7 +35,7 @@ defmodule Resemblixir.References do
   @spec generate_scenario(Scenario.t) :: scenario_result
   def generate_scenario(%Scenario{breakpoints: breakpoints} = scenario) when is_list(breakpoints) do
     breakpoint_screenshots = breakpoints
-    |> Task.async_stream(&generate_breakpoint(&1, scenario))
+    |> Task.async_stream(&generate_breakpoint(&1, scenario), timeout: 10_000)
     |> Enum.map(&await_breakpoint/1)
 
     {scenario.name, breakpoint_screenshots}
