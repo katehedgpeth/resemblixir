@@ -18,7 +18,8 @@ defmodule Resemblixir do
   def run([], _) do
     raise %Resemblixir.NoScenariosError{}
   end
-  def run([%Scenario{} | _] = scenarios, opts) do
+  def run([_ | _] = scenarios, opts) do
+    scenarios = Enum.map(scenarios, &Resemblixir.Scenario.__struct__/1)
     {:ok, pid} = GenServer.start_link(__MODULE__, {scenarios, self()})
     if opts[:async] == true do
       {:ok, pid}
