@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Resemblixir.ReferencesTest do
 
   describe "run/1" do
     test "generates scenario images", %{scenarios: scenarios} do
-      assert {:ok, results} = Mix.Tasks.Resemblixir.References.run()
+      assert {:ok, results} = Mix.Tasks.Resemblixir.References.run(["--no-log"])
       refute Enum.empty?(results)
       results = Enum.into(results, %{})
       for scenario <- scenarios do
