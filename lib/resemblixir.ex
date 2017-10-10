@@ -19,7 +19,7 @@ defmodule Resemblixir do
     raise %Resemblixir.NoScenariosError{}
   end
   def run([_ | _] = scenarios, opts) do
-    scenarios = Enum.map(scenarios, &Resemblixir.Scenario.__struct__/1)
+    scenarios = Enum.map(scenarios, &struct(Resemblixir.Scenario, Enum.into(&1, %{})))
     {:ok, pid} = GenServer.start_link(__MODULE__, {scenarios, self()})
     if opts[:async] == true do
       {:ok, pid}
@@ -39,7 +39,7 @@ defmodule Resemblixir do
   def init({scenarios, parent}) do
     Process.flag :trap_exit, true
     send self(), :start
-    {:ok, {Enum.map(scenarios, &{String.to_atom(&1.name), &1}), parent, %__MODULE__{}}} 
+    {:ok, {Enum.map(scenarios, &{String.to_atom(&1.name), &1}), parent, %__MODULE__{}}}
   end
 
   @impl true
@@ -100,7 +100,7 @@ defmodule Resemblixir do
 
   def get_scenarios do
     case Application.get_env(:resemblixir, :scenarios) do
-      [%Scenario{} | _] = scenarios -> scenarios
+      [%{url: _, name: _, breakpoints: breakpoints} | _] = scenarios when is_list(breakpoints) -> scenarios
       {module, func, args} -> do_get_scenarios({module, func, args})
       other -> raise %Resemblixir.ScenarioConfigError{scenarios: other}
     end

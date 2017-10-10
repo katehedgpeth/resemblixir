@@ -34,7 +34,7 @@ defmodule Resemblixir.ReferencesTest do
 
   describe "generate/1" do
     test "generates screenshots for all scenarios at all breakpoints", %{url: url} do
-      scenarios = for num <- 1..4, do: %Scenario{breakpoints: @breakpoints, name: "scenario_#{num}", url: url}
+      scenarios = for num <- 1..4, do: %{breakpoints: @breakpoints, name: "scenario_#{num}", url: url}
       expected = for num <- 4..1 do
         {"scenario_#{num}", [xs: Paths.reference_file("scenario_#{num}_xs.png"),
                                  sm: Paths.reference_file("scenario_#{num}_sm.png"),

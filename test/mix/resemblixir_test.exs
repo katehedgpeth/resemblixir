@@ -1,6 +1,6 @@
 defmodule Resemblixir.MixTaskTest do
   use ExUnit.Case
-  alias Resemblixir.{Scenario, TestHelpers, Compare, References}
+  alias Resemblixir.{TestHelpers, References}
 
   setup do
     {:ok, bypass: Bypass.open()}
@@ -15,11 +15,11 @@ defmodule Resemblixir.MixTaskTest do
 
       url = TestHelpers.bypass_url(bypass)
 
-      scenarios = [%Scenario{breakpoints: [xs: 320], url: url, name: "scenario_" <> Integer.to_string(System.unique_integer([:positive]))}]
+      scenarios = [%{breakpoints: [xs: 320], url: url, name: "scenario_" <> Integer.to_string(System.unique_integer([:positive]))}]
       {:ok, _} = References.generate(scenarios)
 
       Application.put_env(:resemblixir, :scenarios, scenarios)
-      assert {:ok, %Resemblixir{failed: [], passed: [%Scenario{failed: [], passed: [xs: %Compare{}]}]}} = Mix.Tasks.Resemblixir.run(scenarios)
+      assert :ok  = Mix.Tasks.Resemblixir.run(scenarios)
     end
 
     test "raises Resemblixir.ScenarioConfigError when there are no tests to run" do

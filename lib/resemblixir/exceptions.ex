@@ -7,9 +7,9 @@ end
 
 defmodule Resemblixir.ScenarioConfigError do
   defexception scenarios: []
-  def message(args) do
+  def message(_args) do
 
-    message = """
+    """
     Resemblixir expects scenarios to be a list of %Resemblixir.Scenario{} structs, and for them to be accessible at `Application.get_env(:resemblixir, :scenarios)`.
 
     In your config file, you can either list out the scenarios directly in your :resemblixir config, like this:

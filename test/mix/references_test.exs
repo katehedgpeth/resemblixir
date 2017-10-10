@@ -1,12 +1,12 @@
 defmodule Mix.Tasks.Resemblixir.ReferencesTest do
   use ExUnit.Case, async: true
-  alias Resemblixir.{TestHelpers, Scenario, Paths}
+  alias Resemblixir.{TestHelpers, Paths}
 
   @breakpoints [xs: 300, sm: 544, md: 800, lg: 1200]
 
   def build_scenarios(id, url) do
     for num <- 1..4 do
-      %Scenario{breakpoints: @breakpoints, name: "#{id}_scenario_#{num}", url: url}
+      %{breakpoints: @breakpoints, name: "#{id}_scenario_#{num}", url: url}
     end
   end
 

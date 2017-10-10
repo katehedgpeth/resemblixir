@@ -1,6 +1,6 @@
 defmodule Resemblixir.References do
   @moduledoc """
-  Generates reference screenshots for scenarios. 
+  Generates reference screenshots for scenarios.
   """
   alias Wallaby.Session
   alias Resemblixir.{Paths, Scenario}
@@ -15,9 +15,10 @@ defmodule Resemblixir.References do
 
   Returns {:ok, [{scenario_name, [{breakpoint_name, reference_image_path}]}]} | {:error, error}.
   """
-  @spec generate([Scenario.t]) :: {:ok, [scenario_result]} | error
-  def generate([%Scenario{} | _] = scenarios) do
+  @spec generate([%{required(:name) => String.t, required(:url) => String.t, required(:breakpoints) => Keyword.t}]) :: {:ok, [scenario_result]} | error
+  def generate([%{name: _, url: _, breakpoints: breakpoints} | _] = scenarios) when is_list(breakpoints) do
     scenarios
+    |> Enum.map(& struct(Scenario, Enum.into(&1, [])))
     |> Task.async_stream(&generate_scenario/1)
     |> Enum.reduce({:ok, []}, &await_scenario/2)
   end

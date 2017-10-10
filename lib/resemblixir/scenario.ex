@@ -14,7 +14,7 @@ defmodule Resemblixir.Scenario do
   def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _} = scenario, parent)
   when is_binary(name) and is_binary(url) and is_list(breakpoints) and length(breakpoints) > 0 do
     {:ok, _pid} = GenServer.start_link(__MODULE__, {scenario, parent})
-  end 
+  end
 
   def init({%__MODULE__{} = scenario, parent}) do
     send self(), :start
@@ -25,7 +25,7 @@ defmodule Resemblixir.Scenario do
 
   def handle_info(:start, {%__MODULE__{} = scenario, parent, remaining}) do
     Enum.each(scenario.breakpoints, fn {name, width} ->
-      send self(), {:start_breakpoint, {name, width}} 
+      send self(), {:start_breakpoint, {name, width}}
     end)
     {:noreply, {scenario, parent, remaining}}
   end
