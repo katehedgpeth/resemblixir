@@ -1,4 +1,5 @@
 defmodule Resemblixir.References do
+  require Logger
   @moduledoc """
   Generates reference screenshots for scenarios.
   """
@@ -57,15 +58,16 @@ defmodule Resemblixir.References do
   @spec generate_breakpoint({breakpoint_name::atom, width::integer}, Scenario.t) :: breakpoint_result
   def generate_breakpoint({breakpoint_name, width}, %Scenario{name: scenario_name, url: url})
   when is_binary(scenario_name) and is_atom(breakpoint_name) and is_integer(width) do
+    reference_path = scenario_name
+                     |> Paths.file_name(breakpoint_name)
+                     |> Paths.reference_file()
+    Logger.info "generating " <> reference_path
+
     {:ok, session} = Wallaby.start_session()
     %Session{screenshots: [screenshot]} = session
     |> Wallaby.Browser.resize_window(width, 1000)
     |> Wallaby.Browser.visit(url)
     |> Wallaby.Browser.take_screenshot()
-
-    reference_path = scenario_name
-                     |> Paths.file_name(breakpoint_name)
-                     |> Paths.reference_file()
 
     :ok = File.rename(screenshot, reference_path)
     :ok = Wallaby.end_session(session)
