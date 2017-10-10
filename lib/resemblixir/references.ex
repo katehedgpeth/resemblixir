@@ -17,6 +17,9 @@ defmodule Resemblixir.References do
   """
   @spec generate([%{required(:name) => String.t, required(:url) => String.t, required(:breakpoints) => Keyword.t}]) :: {:ok, [scenario_result]} | error
   def generate([%{name: _, url: _, breakpoints: breakpoints} | _] = scenarios) when is_list(breakpoints) do
+    Paths.reference_image_dir()
+    |> File.mkdir_p()
+
     scenarios
     |> Enum.map(& struct(Scenario, Enum.into(&1, [])))
     |> Task.async_stream(&generate_scenario/1)
