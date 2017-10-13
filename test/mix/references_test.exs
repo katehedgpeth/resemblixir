@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Resemblixir.ReferencesTest do
   use ExUnit.Case, async: true
   alias Resemblixir.{TestHelpers, Paths}
 
-  @breakpoints [xs: 300, sm: 544, md: 800, lg: 1200]
+  @breakpoints %{xs: 300, sm: 544, md: 800, lg: 1200}
 
   def build_scenarios(id, url) do
     for num <- 1..4 do
@@ -19,13 +19,23 @@ defmodule Mix.Tasks.Resemblixir.ReferencesTest do
     [id | _] = DateTime.utc_now() |> DateTime.to_iso8601(:basic) |> String.split(".")
     url = TestHelpers.bypass_url(bypass)
     scenarios = build_scenarios(id, url)
-    :ok = Application.put_env(:resemblixir, :scenarios, scenarios)
     {:ok, url: url, id: id, scenarios: scenarios}
   end
 
   describe "run/1" do
     test "generates scenario images", %{scenarios: scenarios} do
+      priv = Path.join([Application.app_dir(:resemblixir), "priv"])
+      assert :ok = File.mkdir_p(priv)
+      json_path = Path.join([priv, "scenarios.json"])
+                  |> IO.inspect()
+      assert {:ok, json} = Poison.encode(scenarios)
+      assert :ok = File.write(json_path, json)
+      prev_config = Application.get_env(:resemblixir, :scenarios)
+                    |> IO.inspect()
+      :ok = Application.put_env(:resemblixir, :scenarios, json_path)
       assert {:ok, results} = Mix.Tasks.Resemblixir.References.run(["--no-log"])
+      Application.put_env(:resemblixir, :scenarios, prev_config)
+      assert :ok = File.rm(json_path)
       refute Enum.empty?(results)
       results = Enum.into(results, %{})
       for scenario <- scenarios do

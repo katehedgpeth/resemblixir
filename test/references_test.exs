@@ -5,15 +5,6 @@ defmodule Resemblixir.ReferencesTest do
   @breakpoints [xs: 300, sm: 544, md: 800, lg: 1200]
   @screenshot File.cwd!() |> Path.join("/priv/img_1.png") |> File.read!()
 
-  def stub_external_requests(%Bypass{} = bypass, proc) do
-    send proc, {"external setup called", bypass}
-    Bypass.expect bypass, fn conn ->
-      send proc, {"external request function called", bypass}
-      Plug.Conn.resp(conn, 200, @screenshot)
-    end
-    :ok
-  end
-
   describe "generate_breakpoint/3" do
     test "returns {breakpoint_name, screenshot_path}" do
       bypass = Bypass.open()
@@ -23,21 +14,6 @@ defmodule Resemblixir.ReferencesTest do
       assert {:xs, screenshot_path} = References.generate_breakpoint({:xs, 320}, %Scenario{name: "scenario_1", url: url})
       assert screenshot_path == Path.join([File.cwd!(), "priv", "resemblixir", "reference_images", "scenario_1_xs.png"])
       assert :ok = File.rm(screenshot_path)
-    end
-
-    test "calls config module to setup external request stubbing" do
-      bypass = Bypass.open()
-      Bypass.expect(bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, "<html><head></head><body><img src='http://localhost:8080' /></body></html>")
-      end)
-      url = TestHelpers.bypass_url(bypass)
-      assert :ok = Application.put_env(:resemblixir, :external_requests, {8080, {__MODULE__, :stub_external_requests, [self()]}})
-      assert {:xs, screenshot_path} = References.generate_breakpoint({:xs, 320}, %Scenario{name: "scenario_1", url: url})
-      assert_receive {"external setup called", %Bypass{}}
-      assert_receive {"external request function called", %Bypass{}}
-      assert screenshot_path == Path.join([File.cwd!(), "priv", "resemblixir", "reference_images", "scenario_1_xs.png"])
-      assert :ok = File.rm(screenshot_path)
-      assert :ok = Application.put_env(:resemblixir, :external_requests, nil)
     end
   end
 
@@ -67,6 +43,11 @@ defmodule Resemblixir.ReferencesTest do
                                  lg: Paths.reference_file("scenario_#{num}_lg.png")]}
       end
       assert References.generate(scenarios) == {:ok, expected}
+      for {_, breakpoints} <- expected do
+        for {_, path} <- breakpoints do
+          assert :ok = File.rm(path)
+        end
+      end
     end
   end
 end

@@ -15,16 +15,14 @@ defmodule Resemblixir.MixTaskTest do
 
       url = TestHelpers.bypass_url(bypass)
 
-      scenarios = [%{breakpoints: [xs: 320], url: url, name: "scenario_" <> Integer.to_string(System.unique_integer([:positive]))}]
+      scenarios = [%{breakpoints: %{xs: 320}, url: url, name: "scenario_" <> Integer.to_string(System.unique_integer([:positive]))}]
       {:ok, _} = References.generate(scenarios)
 
-      Application.put_env(:resemblixir, :scenarios, scenarios)
-      assert :ok  = Mix.Tasks.Resemblixir.run(scenarios)
+      assert :ok  = Mix.Tasks.Resemblixir.run([], scenarios)
     end
 
-    test "raises Resemblixir.ScenarioConfigError when there are no tests to run" do
-      :ok = Application.put_env(:resemblixir, :scenarios, [])
-      assert_raise(Resemblixir.ScenarioConfigError, fn -> Mix.Tasks.Resemblixir.run([]) end)
+    test "raises Resemblixir.NoScenariosError when there are no tests to run" do
+      assert_raise(Resemblixir.NoScenariosError, fn -> Mix.Tasks.Resemblixir.run([], []) end)
     end
   end
 end

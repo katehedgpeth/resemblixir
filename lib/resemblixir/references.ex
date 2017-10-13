@@ -4,7 +4,7 @@ defmodule Resemblixir.References do
   Generates reference screenshots for scenarios.
   """
   alias Wallaby.Session
-  alias Resemblixir.{Paths, Scenario}
+  alias Resemblixir.{Paths, Scenario, Screenshot}
 
   @type breakpoint_result :: {atom, String.t}
   @type scenario_result :: {String.t, [breakpoint_result]}
@@ -17,7 +17,7 @@ defmodule Resemblixir.References do
   Returns {:ok, [{scenario_name, [{breakpoint_name, reference_image_path}]}]} | {:error, error}.
   """
   @spec generate([%{required(:name) => String.t, required(:url) => String.t, required(:breakpoints) => Keyword.t}]) :: {:ok, [scenario_result]} | error
-  def generate([%{name: _, url: _, breakpoints: breakpoints} | _] = scenarios) when is_list(breakpoints) do
+  def generate([%{name: _, url: _, breakpoints: breakpoints} | _] = scenarios) do
     Paths.reference_image_dir()
     |> File.mkdir_p()
 
@@ -33,7 +33,7 @@ defmodule Resemblixir.References do
   Returns {scenario_name, [{breakpoint_name, reference_image_path}]}.
   """
   @spec generate_scenario(Scenario.t) :: scenario_result
-  def generate_scenario(%Scenario{breakpoints: breakpoints} = scenario) when is_list(breakpoints) do
+  def generate_scenario(%Scenario{breakpoints: breakpoints} = scenario) do
     breakpoint_screenshots = breakpoints
     |> Task.async_stream(&generate_breakpoint(&1, scenario), timeout: 10_000)
     |> Enum.map(&await_breakpoint/1)
@@ -56,61 +56,19 @@ defmodule Resemblixir.References do
   Returns {breakpoint_name, reference_image_path}
   """
   @spec generate_breakpoint({breakpoint_name::atom, width::integer}, Scenario.t) :: breakpoint_result
-  def generate_breakpoint({breakpoint_name, width}, %Scenario{name: scenario_name, url: url})
+  def generate_breakpoint({breakpoint_name, width}, %Scenario{name: scenario_name} = scenario)
   when is_binary(scenario_name) and is_atom(breakpoint_name) and is_integer(width) do
     reference_path = scenario_name
                      |> Paths.file_name(breakpoint_name)
                      |> Paths.reference_file()
     Logger.info "generating " <> reference_path
 
-    {:ok, bypass} = stub_external_requests()
-
-    {:ok, session} = Wallaby.start_session()
-    %Session{screenshots: [screenshot]} = session
-    |> Wallaby.Browser.resize_window(width, 1000)
-    |> Wallaby.Browser.visit(url)
-    |> Wallaby.Browser.take_screenshot()
-
-    close_bypass(bypass)
-
-    :ok = File.rename(screenshot, reference_path)
-    :ok = Wallaby.end_session(session)
+    %Screenshot{path: screenshot} = Screenshot.take(%{scenario | folder: Paths.reference_image_dir()}, {breakpoint_name, width})
+    #:ok = File.rename(screenshot, reference_path)
 
     {breakpoint_name, reference_path}
   end
 
   @spec await_breakpoint({:ok, breakpoint_result}) :: breakpoint_result
   defp await_breakpoint({:ok, {breakpoint_name, image}}), do: {breakpoint_name, image}
-
-  defp stub_external_requests do
-    case Application.get_env(:resemblixir, :external_requests) do
-      {port, {module, func, args}} when is_integer(port) ->
-        bypass = open_bypass_without_ex_unit(port)
-        :ok = apply(module, func, [bypass | args])
-        {:ok, bypass}
-      _ ->
-        {:ok, nil}
-    end
-  end
-
-  # Bypass.open/1 calls Bypass.setup_framework_integration/2 which throws an error when used outside
-  # of ExUnit or espec. This is just a copy of Bypass.open that omits that call to
-  # setup_framework_integration but leaves everything else the same.
-  defp open_bypass_without_ex_unit(port) when is_integer(port) do
-    {:ok, _} = Application.ensure_all_started(:bypass)
-    case Supervisor.start_child(Bypass.Supervisor, [[port: port]]) do
-      {:ok, pid} ->
-        port = Bypass.Instance.call(pid, :port)
-        %Bypass{pid: pid, port: port}
-      other ->
-        other
-    end
-  end
-
-  defp close_bypass(nil), do: :ok
-  defp close_bypass(%Bypass{pid: pid}) do
-    # TODO: this returns various things like :too_many_calls, :unexpected_request;
-    #       could do something with that at some point
-    GenServer.call(pid, :on_exit)
-  end
 end

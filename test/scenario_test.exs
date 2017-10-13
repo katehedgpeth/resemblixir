@@ -40,12 +40,7 @@ defmodule Resemblixir.ScenarioTest do
   describe "run/1" do
     test "runs a single scenario", %{scenario: scenario} do
 
-      bypass = Bypass.open()
-      Bypass.expect bypass, fn conn ->
-        Plug.Conn.resp(conn, 200, TestHelpers.html(1))
-      end
-
-      assert {:ok, pid} = Scenario.run(%{scenario | url: "http://localhost:" <> Integer.to_string(bypass.port)}, self())
+      assert {:ok, pid} = Scenario.run(scenario, self())
       assert is_pid(pid)
       assert_receive {:ok, %Scenario{failed: []}}, 1_000
     end

@@ -11,10 +11,25 @@ defmodule Resemblixir.Scenario do
     failed: [Compare.t]
   }
 
-  def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _} = scenario, parent)
-  when is_binary(name) and is_binary(url) and is_list(breakpoints) and length(breakpoints) > 0 do
-    {:ok, _pid} = GenServer.start_link(__MODULE__, {scenario, parent})
+  def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _} = scenario) do
+  #  when is_binary(name) and is_binary(url) and is_list(breakpoints) do
+    breakpoints
+    |> Enum.map(& Task.async(fn -> Breakpoint.run(&1, scenario) end))
+    |> Task.yield_many()
+    |> Enum.reduce(scenario, &await_breakpoint/2)
+    |> finish()
   end
+
+  defp await_breakpoint({_task, {:ok, breakpoint}}, %__MODULE__{} = result), do: %{result | passed: [breakpoint | result.passed]}
+  defp await_breakpoint({_task, {:error, breakpoint}}, %__MODULE__{} = result), do: %{result | failed: [breakpoint | result.failed]}
+  defp await_breakpoint({task, {:exit, reason}}, %__MODULE__{} = result), do: %{result | failed: [{:exit, reason, task} | result.failed]}
+  defp await_breakpoint({task, nil}, %__MODULE__{} = result) do
+    Task.shutdown(task, :brutal_kill)
+    %{result | failed: [{:timeout, task} | result.failed]}
+  end
+
+  defp finish(%__MODULE__{failed: []} = scenario), do: {:ok, scenario}
+  defp finish(%__MODULE__{} = scenario), do: {:error, scenario}
 
   def init({%__MODULE__{} = scenario, parent}) do
     send self(), :start

@@ -1,15 +1,19 @@
-const resemble = require("resemblejs");
-const fs = require("fs");
+try {
+  const resemble = require("resemblejs");
+  const fs = require("fs");
 
-//process.stdout.write(JSON.stringify(process.argv))
+  //process.stdout.write(JSON.stringify(process.argv))
 
-const filePath1 = process.argv[2];
-const filePath2 = process.argv[3];
+  const referencePath = process.argv[2];
+  const testPath = process.argv[3];
 
-const file1 = fs.readFileSync(filePath1);
-const file2 = fs.readFileSync(filePath2);
+  const referenceFile = fs.readFileSync(referencePath);
+  const testFile = fs.readFileSync(testPath);
 
 
-resemble(file1).compareTo(file2).onComplete(function(result) {
-  process.stdout.write(JSON.stringify(result))
-});
+  resemble(referenceFile).compareTo(testFile).onComplete(function(result) {
+    process.stdout.write(JSON.stringify(result))
+  });
+} catch (error) {
+  process.stdout.write(JSON.stringify({error: error}));
+}

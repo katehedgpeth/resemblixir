@@ -1,6 +1,6 @@
 defmodule Resemblixir.Compare do
   use GenServer
-  alias Resemblixir.Scenario
+  alias Resemblixir.{Scenario, Screenshot}
 
   defstruct [:test, :scenario, :breakpoint, :mismatch_percentage,
              :raw_mismatch_percentage, :is_same_dimensions, :analysis_time,
@@ -22,22 +22,18 @@ defmodule Resemblixir.Compare do
   @type result :: {:ok, __MODULE__.t} | {:error, __MODULE__.t}
 
   @spec compare(test_image_path :: String.t, Scenario.t, breakpoint :: atom, ref_image_path :: String.t) :: result
-  def compare(test_image_path, %Scenario{name: test_name}, breakpoint, ref_image_path) when is_binary(test_image_path) do
+  def compare(%Screenshot{path: test_image_path}, %Scenario{name: test_name}, breakpoint, ref_image_path) when is_binary(test_image_path) do
     # TODO: use :poolboy.transation to run this
     test_image_path
     |> open_port(ref_image_path)
     |> await_result(%__MODULE__{scenario: test_name, breakpoint: breakpoint, images: %{ref: ref_image_path, test: test_image_path}})
   end
 
-  defp await_result(port, %__MODULE__{} = info) do
-    receive do
-      {^port, {:data, data}} ->
-        Port.close(port)
-        data
-        |> Poison.decode(keys: :atoms!)
-        |> format(info)
-        |> analyze_result()
-    end
+  defp await_result({result, 0}, %__MODULE__{} = info) do
+    result
+    |> Poison.decode(keys: :atoms!)
+    |> format(info)
+    |> analyze_result()
   end
 
   def format({:ok, %{misMatchPercentage: mismatch, rawMisMatchPercentage: raw_mismatch,
@@ -61,9 +57,18 @@ defmodule Resemblixir.Compare do
   defp analyze_result(%__MODULE__{} = result), do: {:error, result}
 
   def open_port(test_img, ref_img) do
-    cmd = Enum.join(["node", compare_js(), test_img, ref_img], " ")
-    Port.open({:spawn, cmd}, [:binary])
+    nodejs = System.find_executable("node")
+    System.cmd nodejs, [compare_js(), test_img, ref_img], [stderr_to_stdout: true]
   end
+
+  defp close_port(port) do
+    case Port.info(port) do
+      nil -> :ok
+      _ -> Port.close(port)
+    end
+  end
+
+
 
   def compare_js do
     :resemblixir

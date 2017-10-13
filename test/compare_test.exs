@@ -1,5 +1,5 @@
 defmodule Resemblixir.CompareTest do
-  alias Resemblixir.{Compare, Scenario}
+  alias Resemblixir.{Compare, Scenario, Screenshot}
   use ExUnit.Case, async: true
   setup_all do
     test_img_folder = Path.join([Application.app_dir(:resemblixir), "priv"])
@@ -13,24 +13,19 @@ defmodule Resemblixir.CompareTest do
 
   describe "compare/1" do
     test "returns {:error, %Compare{} when files do not match", %{test: test, ref: ref} do
-      assert {:error, %Compare{}} = Compare.compare(test, %Scenario{name: "test_2"}, :xs, ref)
+      assert {:error, %Compare{}} = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_2"}, :xs, ref)
     end
 
     test "returns {:ok, %Compare{}} when files match", %{test: test} do
-      assert {:ok, %Compare{}} = Compare.compare(test, %Scenario{name: "test_3"}, :xs, test)
+      assert {:ok, %Compare{}} = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_3"}, :xs, test)
     end
   end
 
   describe "open_port" do
     test "successfully runs an image analysis", %{test: test, ref: ref} do
       assert File.exists? Compare.compare_js()
-      assert port = Compare.open_port(test, ref)
-      assert_receive {^port, {:data, data}}, 5_000
-      assert {:ok, %{isSameDimensions: _, dimensionDifference: _, rawMisMatchPercentage: _, misMatchPercentage: _}} = Poison.decode(data, keys: :atoms)
-      case Port.info(port) do
-        nil -> :ok
-        _ -> assert Port.close(port) == true
-      end
+      assert {result, 0} = Compare.open_port(test, ref)
+      assert {:ok, %{isSameDimensions: _, dimensionDifference: _, rawMisMatchPercentage: _, misMatchPercentage: _}} = Poison.decode(result, keys: :atoms)
     end
   end
 end
