@@ -79,14 +79,15 @@ defmodule Resemblixir.TestFailure do
   end
 
   defp format_breakpoint_value({key, val}) do
-    ["\s\s\s\s", Atom.to_string(key), " ", do_format_breakpoint_value(key, val), "\n"]
+    newline = if key == :test, do: "\n", else: ",\n"
+    ["\s\s\s\s", Atom.to_string(key), ": ", do_format_breakpoint_value(key, val), newline]
   end
 
   defp do_format_breakpoint_value(:images, val) do
     [
       "%{\n",
       Enum.map(val, fn {name, path} -> ["\s\s\s\s\s\s", Atom.to_string(name), ": ", path, "\n"] end),
-      "}\n"
+      "\s\s\s\s},\n"
     ]
   end
   defp do_format_breakpoint_value(_key, val), do: inspect(val)
