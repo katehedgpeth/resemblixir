@@ -6,7 +6,7 @@ defmodule Resemblixir.MixTaskTest do
       scenarios = scenarios
                   |> Enum.map(&Map.from_struct/1)
                   |> Enum.map(& Map.delete(&1, :folder))
-      assert :ok  = Mix.Tasks.Resemblixir.run([], scenarios)
+      assert :ok  = Mix.Tasks.Resemblixir.run(["--no-log"], scenarios)
     end
 
     @tag generate_references: false
