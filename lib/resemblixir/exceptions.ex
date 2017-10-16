@@ -79,7 +79,7 @@ defmodule Resemblixir.TestFailure do
   end
 
   defp format_breakpoint_value({key, val}) do
-    newline = if key == :test, do: "\n", else: ",\n"
+    newline = if key == :test, do: "\n\n", else: ",\n"
     ["\s\s\s\s", Atom.to_string(key), ": ", do_format_breakpoint_value(key, val), newline]
   end
 
