@@ -3,7 +3,7 @@ defmodule Resemblixir.ReferencesTest do
   use ExUnit.Case, async: true
 
   @breakpoints [xs: 300, sm: 544, md: 800, lg: 1200]
-  @screenshot File.cwd!() |> Path.join("/priv/img_1.png") |> File.read!()
+  @screenshot File.cwd!() |> Path.join("/priv/454x444.png") |> File.read!()
 
   describe "generate_breakpoint/3" do
     test "returns {breakpoint_name, screenshot_path}" do

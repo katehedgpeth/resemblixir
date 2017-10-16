@@ -1,6 +1,5 @@
 defmodule Resemblixir.ScenarioCase do
-  alias Resemblixir.{TestHelpers, Paths}
-  import TestHelpers
+  import Resemblixir.TestHelpers
   use ExUnit.CaseTemplate
 
   setup tags do

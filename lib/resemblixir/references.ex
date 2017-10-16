@@ -16,7 +16,7 @@ defmodule Resemblixir.References do
   Returns {:ok, [{scenario_name, [{breakpoint_name, reference_image_path}]}]} | {:error, error}.
   """
   @spec generate([%{required(:name) => String.t, required(:url) => String.t, required(:breakpoints) => Keyword.t}]) :: {:ok, [scenario_result]} | error
-  def generate([%{name: _, url: _, breakpoints: breakpoints} | _] = scenarios) do
+  def generate([%{name: _, url: _, breakpoints: _} | _] = scenarios) do
     Paths.reference_image_dir()
     |> File.mkdir_p()
 
@@ -62,7 +62,7 @@ defmodule Resemblixir.References do
                      |> Paths.reference_file()
     Logger.info "generating " <> reference_path
 
-    %Screenshot{path: screenshot} = Screenshot.take(%{scenario | folder: Paths.reference_image_dir()}, {breakpoint_name, width})
+    %Screenshot{} = Screenshot.take(%{scenario | folder: Paths.reference_image_dir()}, {breakpoint_name, width})
 
     {breakpoint_name, reference_path}
   end

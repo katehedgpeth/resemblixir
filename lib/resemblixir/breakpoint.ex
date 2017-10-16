@@ -13,7 +13,7 @@ defmodule Resemblixir.Breakpoint do
   end
 
   @spec do_run({breakpoint::atom, width::integer}, Scenario.t, ref_path::String.t) :: Compare.result
-  defp do_run({breakpoint_name, breakpoint_width}, %Scenario{url: url} = scenario, ref_image) do
+  defp do_run({breakpoint_name, breakpoint_width}, %Scenario{} = scenario, ref_image) do
     scenario
     |> Screenshot.take({breakpoint_name, breakpoint_width})
     |> Compare.compare(scenario, breakpoint_name, ref_image)

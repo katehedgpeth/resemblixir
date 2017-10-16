@@ -63,15 +63,6 @@ defmodule Resemblixir.Compare do
     System.cmd nodejs, [compare_js(), ref_img, test_img], [stderr_to_stdout: true]
   end
 
-  defp close_port(port) do
-    case Port.info(port) do
-      nil -> :ok
-      _ -> Port.close(port)
-    end
-  end
-
-
-
   def compare_js do
     :resemblixir
     |> Application.app_dir()

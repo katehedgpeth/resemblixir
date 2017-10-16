@@ -1,5 +1,5 @@
 defmodule Resemblixir.ScenarioTest do
-  alias Resemblixir.{Paths, Scenario, TestHelpers, MissingReferenceError, References, Compare}
+  alias Resemblixir.{Paths, Scenario, MissingReferenceError, References, Compare}
   use Resemblixir.ScenarioCase, async: true
 
   describe "run/1" do
@@ -21,7 +21,7 @@ defmodule Resemblixir.ScenarioTest do
       assert {:error, %Scenario{failed: failed}} = Scenario.run(scenario)
       assert [{:xs, %Compare{images: %{diff: diff}, dimension_difference: %{width: width}}}] = failed
       assert File.exists?(diff)
-      assert width == -338
+      assert width == 338
     end
   end
 end

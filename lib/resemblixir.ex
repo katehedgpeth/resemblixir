@@ -17,7 +17,7 @@ defmodule Resemblixir do
   def run([], _) do
     raise %Resemblixir.NoScenariosError{}
   end
-  def run([_ | _] = scenarios, opts) do
+  def run([_ | _] = scenarios, _opts) do
     folder = make_test_folder()
     scenarios
     |> Task.async_stream(&start_scenario(&1, folder), max_concurrency: System.schedulers_online * 2, ordered: false, on_timeout: :kill_task)

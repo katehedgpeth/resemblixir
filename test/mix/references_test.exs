@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Resemblixir.ReferencesTest do
-  use ExUnit.Case, async: true
+  use Resemblixir.ScenarioCase, async: true
   alias Resemblixir.{TestHelpers, Paths}
 
   @breakpoints %{xs: 300, sm: 544, md: 800, lg: 1200}
@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Resemblixir.ReferencesTest do
   setup do
     bypass = Bypass.open()
     Bypass.expect(bypass, fn conn ->
-      Plug.Conn.resp(conn, 200, File.cwd!() |> Path.join("/priv/img_1.png") |> File.read!())
+      Plug.Conn.resp(conn, 200, File.cwd!() |> Path.join("/priv/454x444.png") |> File.read!())
     end)
     [id | _] = DateTime.utc_now() |> DateTime.to_iso8601(:basic) |> String.split(".")
     url = TestHelpers.bypass_url(bypass)
@@ -27,11 +27,9 @@ defmodule Mix.Tasks.Resemblixir.ReferencesTest do
       priv = Path.join([Application.app_dir(:resemblixir), "priv"])
       assert :ok = File.mkdir_p(priv)
       json_path = Path.join([priv, "scenarios.json"])
-                  |> IO.inspect()
       assert {:ok, json} = Poison.encode(scenarios)
       assert :ok = File.write(json_path, json)
       prev_config = Application.get_env(:resemblixir, :scenarios)
-                    |> IO.inspect()
       :ok = Application.put_env(:resemblixir, :scenarios, json_path)
       assert {:ok, results} = Mix.Tasks.Resemblixir.References.run(["--no-log"])
       Application.put_env(:resemblixir, :scenarios, prev_config)

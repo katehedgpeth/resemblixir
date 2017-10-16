@@ -112,7 +112,7 @@ defmodule Resemblixir.TestHelpers do
             |> Task.yield_many()
             |> Enum.reduce(:ok, fn
               {_task, {:ok, true}}, :ok -> :ok
-              {_task, {:ok, false}}, acc -> :error
+              {_task, {:ok, false}}, _ -> :error
               error, _ -> error
             end)
     end

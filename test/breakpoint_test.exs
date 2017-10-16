@@ -12,7 +12,7 @@ defmodule Resemblixir.BreakpointTest do
     test "returns {:error, %Compare{}} when images do not match", %{scenarios: [scenario]} do
       assert {:error, {:xs, data}} = Breakpoint.run({:xs, 700}, scenario)
       assert is_binary(data.images.diff)
-      assert data.dimension_difference.width > 0
+      assert data.dimension_difference.width == -238
     end
 
     test "returns {:error, %MissingReferenceError{}} when reference file is missing}", %{scenarios: [scenario], reference_folder: folder} do
