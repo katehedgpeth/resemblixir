@@ -69,6 +69,7 @@ defmodule Resemblixir do
         json_path
         |> File.read!()
         |> Poison.decode!(keys: :atoms!)
+      list when is_list(list) -> list
       other -> raise %Resemblixir.ScenarioConfigError{scenarios: other}
     end
   end

@@ -10,15 +10,15 @@ defmodule Resemblixir.ScenarioConfigError do
   def message(_args) do
 
     """
-    Resemblixir expects scenarios to be a list of %Resemblixir.Scenario{} structs, and for them to be accessible at `Application.get_env(:resemblixir, :scenarios)`.
+    Resemblixir expects `Application.get_env(:resemblixir, :scenarios)` to return either a path to a json file, or a list of scenario maps.
 
     In your config file, you can either list out the scenarios directly in your :resemblixir config, like this:
 
-          `config :resemblixir, scenarios: [%Scenario{name: "scenario_1", url: "http://url.com"...`
+          `config :resemblixir, scenarios: [%{name: "scenario_1", url: "http://localhost:4001", breakpoints: [...]}, ...`
 
-    Or, alternatively, you can provide a {module, function, args} tuple, which should point to a module and function that will return a list of %Scenario{} structs when applied, like this:
+    Or, alternatively, you can provide a path to a json file that will resolve to a list of maps:
 
-          `config :resemblixir, scenarios: {MyApp.Resemblixir.Scenarios, :config, []}`
+          `config :resemblixir, scenarios: "/path/to/json_file.json"`
 
     Application.get_env(:resemblixir, :scenarios): #{:resemblixir |> Application.get_env(:scenarios) |> inspect()}
     """
