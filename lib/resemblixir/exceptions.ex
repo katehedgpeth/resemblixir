@@ -43,11 +43,12 @@ defmodule Resemblixir.TestFailure do
   defexception [:passed, :failed, :message]
   def message(args) do
     [
+      "\n Some scenarios did not pass :(\n\n",
       "Failed scenarios:\n",
       failed_scenarios(args.failed),
       "\n\n",
       "Scenarios passing:\n",
-      Enum.map(args.passed, & ["\t\t\t", &1.name, "\n" ])
+      Enum.map(args.passed, & ["\s\s\s", &1.name, "\n" ])
     ]
     |> IO.iodata_to_binary()
   end
@@ -55,24 +56,38 @@ defmodule Resemblixir.TestFailure do
   defp failed_scenarios(failed) do
     for scenario <- failed do
       [
-        "\t", scenario.name, ":\n",
-        "\t\tFailing Breakpoints:\n",
+        "\s\s", scenario.name, ":\n",
+        "\s\s\s\sFailing Breakpoints:\n",
         Enum.map(scenario.failed, &failed_breakpoint/1),
-        "\t\tPassing Breakpoints:\n",
-        Enum.map(scenario.passed, fn {name, _} -> ["\t\t", Atom.to_string(name), "\n"] end)
+        "\n\n",
+        "\s\s\s\sPassing Breakpoints:\n",
+        Enum.map(scenario.passed, fn {name, _} -> ["\s\s\s\s", Atom.to_string(name), "\n"] end)
       ]
     end
   end
 
   defp failed_breakpoint({name, %Resemblixir.MissingReferenceError{}}) do
-    ["\t\t", Atom.to_string(name), " -- reference image missing\n"]
+    ["\s\s\s\s", Atom.to_string(name), " -- reference image missing\n"]
   end
   defp failed_breakpoint({name, %Resemblixir.Compare{} = data}) do
     [
-      "\t\t", Atom.to_string(name), " -- image mismatch:\n",
+      "\s\s\s\s", Atom.to_string(name), " -- image mismatch:\n",
       data
       |> Map.from_struct()
-      |> Enum.map(fn {key, val} -> ["\t\t\s\s", Atom.to_string(key), " ", inspect(val), "\n"] end)
+      |> Enum.map(&format_breakpoint_value/1)
     ]
   end
+
+  defp format_breakpoint_value({key, val}) do
+    ["\s\s\s\s", Atom.to_string(key), " ", do_format_breakpoint_value(key, val), "\n"]
+  end
+
+  defp do_format_breakpoint_value(:images, val) do
+    [
+      "%{\n",
+      Enum.map(val, fn {name, path} -> ["\s\s\s\s\s\s", Atom.to_string(name), ": ", path, "\n"] end),
+      "}\n"
+    ]
+  end
+  defp do_format_breakpoint_value(_key, val), do: inspect(val)
 end
