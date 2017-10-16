@@ -1,4 +1,4 @@
-const resemble = require("resemblejs");
+const resemble = require("./resemble");
 const fs = require("fs");
 const path = require("path");
 
