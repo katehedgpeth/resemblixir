@@ -33,7 +33,7 @@ defmodule Resemblixir.Breakpoint do
   end
 
   defp finish({:ok, %Compare{breakpoint: name} = result}), do: {:ok, {name, result}}
-  defp finish({:error, %Compare{breakpoint: name, images: %{diff: diff}} = result}) when is_binary(diff), do: {:error, {name, result}}
+  defp finish({:error, %Compare{breakpoint: name} = result}), do: {:error, {name, result}}
 
   defp breakpoint_file_name(scenario_name, breakpoint_name) do
     scenario_name
