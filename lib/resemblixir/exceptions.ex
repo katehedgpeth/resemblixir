@@ -87,7 +87,7 @@ defmodule Resemblixir.TestFailure do
     [
       "%{\n",
       Enum.map(val, fn {name, path} -> ["\s\s\s\s\s\s", Atom.to_string(name), ": ", path, "\n"] end),
-      "\s\s\s\s},\n"
+      "\s\s\s\s}"
     ]
   end
   defp do_format_breakpoint_value(_key, val), do: inspect(val)
