@@ -14,7 +14,7 @@
   resemble(referenceFile).compareTo(testFile).onComplete(function(data) {
     var buffer = data.getBuffer()
     const result = {data: data, diff: null}
-    if (data.misMatchPercentage > 0 || data.dimensionDifference != {height: 0, width: 0}) {
+    if (data.rawMisMatchPercentage > 0 || data.dimensionDifference.height != 0, data.dimensionDifference.width != 0) {
       const testName = path.basename(testPath);
       const testFolder = path.dirname(testPath);
       const diffName = "failed_diff_" + testName;
