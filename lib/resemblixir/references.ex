@@ -3,7 +3,6 @@ defmodule Resemblixir.References do
   @moduledoc """
   Generates reference screenshots for scenarios.
   """
-  alias Wallaby.Session
   alias Resemblixir.{Paths, Scenario, Screenshot}
 
   @type breakpoint_result :: {atom, String.t}
@@ -64,7 +63,6 @@ defmodule Resemblixir.References do
     Logger.info "generating " <> reference_path
 
     %Screenshot{path: screenshot} = Screenshot.take(%{scenario | folder: Paths.reference_image_dir()}, {breakpoint_name, width})
-    #:ok = File.rename(screenshot, reference_path)
 
     {breakpoint_name, reference_path}
   end

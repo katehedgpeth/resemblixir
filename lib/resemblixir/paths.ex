@@ -1,7 +1,4 @@
 defmodule Resemblixir.Paths do
-  @otp_app Application.get_env(:resemblixir, :otp_app) 
-
-  def otp_app, do: @otp_app
 
   def parent_directory(), do: File.cwd!()
 
@@ -21,7 +18,7 @@ defmodule Resemblixir.Paths do
   end
 
   def reference_file(parent_dir \\ nil, file_name)
-  def reference_file(nil, file_name) when is_binary(file_name), do: reference_file(reference_image_dir(), file_name) 
+  def reference_file(nil, file_name) when is_binary(file_name), do: reference_file(reference_image_dir(), file_name)
   def reference_file("/" <> _ = app_dir, file_name) when is_binary(file_name) and is_binary(app_dir) do
     case file_name |> String.split(".") |> Enum.reverse() do
       ["png" | _] -> Path.join([app_dir, file_name])

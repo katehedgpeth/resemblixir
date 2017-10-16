@@ -18,28 +18,23 @@ defmodule Resemblixir do
     raise %Resemblixir.NoScenariosError{}
   end
   def run([_ | _] = scenarios, opts) do
-    {:ok, pid} = Resemblixir.PhantomJs.start_link()
+    folder = make_test_folder()
     scenarios
-    |> Enum.map(&struct(Resemblixir.Scenario, Enum.into(&1, %{})))
-    |> Task.async_stream(&start_scenario/1, max_concurrency: System.schedulers_online * 2, ordered: false)
+    |> Task.async_stream(&start_scenario(&1, folder), max_concurrency: System.schedulers_online * 2, ordered: false, on_timeout: :kill_task)
     |> Enum.reduce(%__MODULE__{}, &await_scenario/2)
-    |> finish(pid)
+    |> finish()
   end
 
-  defp await_scenario({:ok, scenario}, %__MODULE__{} = result) do
+  defp await_scenario({:ok, {:ok, %Scenario{} = scenario}}, %__MODULE__{} = result) do
     %{result | passed: [scenario | result.passed]}
   end
-  defp await_scenario({:error, scenario}, %__MODULE__{} = result) do
+  defp await_scenario({:ok, {:error, %Scenario{} = scenario}}, %__MODULE__{} = result) do
     %{result | failed: [scenario | result.failed]}
   end
+  defp await_scenario({:exit, :timeout}, %__MODULE__{} = result), do: %{result | failed: [:timeout | result.failed]}
 
-  defp finish(%__MODULE__{} = result, pid) do
-    GenServer.stop(pid)
-    do_finish(result)
-  end
-
-  defp do_finish(%__MODULE__{failed: []} = result), do: {:ok, result}
-  defp do_finish(%__MODULE__{} = result), do: {:error, result}
+  defp finish(%__MODULE__{failed: []} = result), do: {:ok, result}
+  defp finish(%__MODULE__{} = result), do: {:error, result}
 
   def handle_info(message, {scenarios, parent, result}) do
     IO.inspect message, label: "unexpected message in Resemblixir"
@@ -53,9 +48,19 @@ defmodule Resemblixir do
     test_folder
   end
 
-  @spec start_scenario(Scenario.t) :: {:ok | :error, Scenario.t}
-  defp start_scenario(%Scenario{} = scenario) do
-    Scenario.run(%{scenario | folder: make_test_folder()})
+  @spec start_scenario(scenario::map | Keyword.t, folder::String.t) :: {:ok | :error, Scenario.t}
+  defp start_scenario(scenario, folder) when is_list(scenario) or is_map(scenario) do
+    scenario
+    |> Enum.into(%{})
+    |> Map.put(:folder, folder)
+    |> do_start_scenario()
+  end
+
+  @spec do_start_scenario(map) :: {:ok | :error, Scenario.t}
+  defp do_start_scenario(scenario) do
+    Scenario
+    |> struct(scenario)
+    |> Scenario.run()
   end
 
   def get_scenarios do
@@ -68,10 +73,4 @@ defmodule Resemblixir do
     end
   end
 
-  defp do_get_scenarios({module, func, args}) when is_atom(module) and is_atom(func) and is_list(args) do
-    case apply(module, func, args) do
-      [%Scenario{} |_] = scenarios -> scenarios
-      other -> raise %Resemblixir.ScenarioConfigError{scenarios: other}
-    end
-  end
 end

@@ -3,6 +3,7 @@ const filePath = system.args[1];
 const url = system.args[2];
 const width = parseInt(system.args[3]);
 const page = require("webpage").create();
+
 try {
   page.viewportSize = {
     width: width,
@@ -11,14 +12,14 @@ try {
   page.open(url, function(status) {
     try {
       page.render(filePath);
-      phantom.exit();
       system.stdout.write(JSON.stringify({status: status, path: filePath}))
+      phantom.exit();
     } catch (error) {
-      phantom.exit()
       system.stdout.write(JSON.stringify({error: error}));
+      phantom.exit()
     }
   })
 } catch (error) {
-  phantom.exit()
   system.stdout.write(JSON.stringify({error: error}))
+  phantom.exit()
 }

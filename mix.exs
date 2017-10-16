@@ -33,8 +33,9 @@ defmodule Resemblixir.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:wallaby, "~> 0.19"},
-      {:bypass, "~> 0.8"}
+      {:bypass, "~> 0.8"},
+      {:poison, "~> 3.1.0"},
+      {:wallaby, github: "keathley/wallaby", ref: "a6f232c0d7aa80d1b1e8b9b550f2caaf240bcd72"}
     ]
   end
 end

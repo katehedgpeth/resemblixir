@@ -1,7 +1,7 @@
 defmodule Resemblixir.Screenshot do
   alias Resemblixir.{Scenario, Paths}
 
-  defstruct [:url, :path]
+  defstruct [:url, :path, :breakpoint, :width]
   @type t :: %__MODULE__{
     url: String.t,
     path: String.t
@@ -10,52 +10,29 @@ defmodule Resemblixir.Screenshot do
   @spec take(Scenario.t, breakpoint::atom) :: __MODULE__.t
   def take(%Scenario{url: url, folder: folder, name: name} = scenario, {breakpoint, width})
   when is_binary(url) and is_atom(breakpoint) and is_binary(folder) and is_binary(name) do
-    folder
-    |> Paths.test_file(Paths.file_name(name, breakpoint))
-    |> open_port(url, width)
-    |> await_result(url)
+    {:ok, session} = Wallaby.start_session()
+    session
+    |> Wallaby.Browser.resize_window(width, width * 1.5)
+    |> Wallaby.Browser.visit(url)
+    |> Wallaby.Browser.take_screenshot()
+    |> do_take(scenario, breakpoint, width)
   end
 
-  defp await_result(port, url) do
-    receive do
-      {^port, {:data, "{" <> _ = data}} ->
-        close_port(port)
-        data
-        |> Poison.decode(keys: :atoms!)
-        |> format_result(url)
-    after
-      5_000 -> close_port(port)
-    end
+  defp do_take(%Wallaby.Session{screenshots: [screenshot]} = session, %Scenario{name: name, url: url, folder: folder}, breakpoint, width) do
+    :ok = Wallaby.end_session(session)
+
+    name
+    |> Paths.file_name(breakpoint)
+    |> move_screenshot(folder, screenshot)
+    |> format_result(url, breakpoint, width)
   end
 
-  def open_port(path, url, width) when is_binary(path) and is_binary(url) do
-    bash = "priv/phantom_wrapper.sh"
-           |> Path.absname(Application.app_dir(:resemblixir))
-           |> String.to_charlist()
-    opts = [:binary, :stderr_to_stdout, :use_stdio, args: [bash, "phantomjs", screenshot_js(), path, url, Integer.to_string(width)]]
-    Port.open({:spawn_executable, System.find_executable("sh")}, opts)
+  defp move_screenshot(file_name, folder, screenshot) do
+    image_path = Paths.test_file(folder, file_name)
+    {File.rename(screenshot, image_path), image_path}
   end
 
-  defp close_port(port) do
-    case Port.info(port) do
-      nil -> :ok
-      _ -> Port.close(port)
-    end
-  end
-
-  defp await_result({result, 0}, url) do
-    result
-    |> Poison.decode(keys: :atoms!)
-    |> format_result(url)
-  end
-
-  defp format_result({:ok, %{status: "success", path: path}}, url) do
-    %__MODULE__{url: url, path: path}
-  end
-
-  defp screenshot_js() do
-    :resemblixir
-    |> Application.app_dir()
-    |> Path.join("/priv/take_screenshot.js")
+  defp format_result({:ok, path}, url, breakpoint, width) do
+    %__MODULE__{url: url, path: path, breakpoint: breakpoint, width: width}
   end
 end

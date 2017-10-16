@@ -1,6 +1,6 @@
-try {
   const resemble = require("resemblejs");
   const fs = require("fs");
+  const path = require("path");
 
   //process.stdout.write(JSON.stringify(process.argv))
 
@@ -11,9 +11,16 @@ try {
   const testFile = fs.readFileSync(testPath);
 
 
-  resemble(referenceFile).compareTo(testFile).onComplete(function(result) {
+  resemble(referenceFile).compareTo(testFile).onComplete(function(data) {
+    var buffer = data.getBuffer()
+    const result = {data: data, diff: null}
+    if (data.misMatchPercentage > 0 || data.dimensionDifference != {height: 0, width: 0}) {
+      const testName = path.basename(testPath);
+      const testFolder = path.dirname(testPath);
+      const diffName = "failed_diff_" + testName;
+      const diffPath = path.join(testFolder, diffName);
+      fs.writeFileSync(diffPath, data.getBuffer());
+      result.diff = diffPath;
+    }
     process.stdout.write(JSON.stringify(result))
   });
-} catch (error) {
-  process.stdout.write(JSON.stringify({error: error}));
-}

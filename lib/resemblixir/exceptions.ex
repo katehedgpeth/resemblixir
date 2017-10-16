@@ -1,7 +1,7 @@
 defmodule Resemblixir.NoScenariosError do
   defexception [message: "No scenarios provided for Resemblixir to run! Assign scenarios to :scenarios in your :resemblixir config."]
   def exception(_) do
-    %__MODULE__{} 
+    %__MODULE__{}
   end
 end
 

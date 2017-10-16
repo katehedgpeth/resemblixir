@@ -11,8 +11,8 @@ defmodule Resemblixir.Scenario do
     failed: [Compare.t]
   }
 
-  def run(%__MODULE__{breakpoints: breakpoints, name: name, url: url, folder: "/" <> _} = scenario) do
-  #  when is_binary(name) and is_binary(url) and is_list(breakpoints) do
+  def run(%__MODULE__{breakpoints: %{} = breakpoints, name: name, url: url, folder: "/" <> _} = scenario)
+  when is_binary(name) and is_binary(url) do
     breakpoints
     |> Enum.map(& Task.async(fn -> Breakpoint.run(&1, scenario) end))
     |> Task.yield_many()
@@ -20,9 +20,32 @@ defmodule Resemblixir.Scenario do
     |> finish()
   end
 
-  defp await_breakpoint({_task, {:ok, breakpoint}}, %__MODULE__{} = result), do: %{result | passed: [breakpoint | result.passed]}
-  defp await_breakpoint({_task, {:error, breakpoint}}, %__MODULE__{} = result), do: %{result | failed: [breakpoint | result.failed]}
-  defp await_breakpoint({task, {:exit, reason}}, %__MODULE__{} = result), do: %{result | failed: [{:exit, reason, task} | result.failed]}
+  #  defp get_timeout(%__MODULE__{breakpoints: breakpoints}) do
+  #    Resemblixir.PhantomJs
+  #    |> GenServer.call(:queue_length)
+  #    |> do_breakpoint_count(Map.keys(breakpoints))
+  #  end
+  #
+  #  defp do_breakpoint_count(queue_size, breakpoints) when is_list(breakpoints) do
+  #    breakpoints
+  #    |> length()
+  #    |> Kernel.+(queue_size)
+  #    |> Kernel.*(3_000)
+  #    |> IO.inspect(label: "timeout length")
+  #  end
+
+  defp await_breakpoint({_task, {:ok, {:ok, {name, %Compare{} = breakpoint}}}}, %__MODULE__{} = result) do
+    %{result | passed: [{name, breakpoint} | result.passed]}
+  end
+  defp await_breakpoint({_task, {:ok, {:error, {name, %Compare{} = breakpoint}}}}, %__MODULE__{} = result) do
+    %{result | failed: [{name, breakpoint}| result.failed]}
+  end
+  defp await_breakpoint({_task, {:ok, {:error, {name, %Resemblixir.MissingReferenceError{} = breakpoint}}}}, %__MODULE__{} = result) do
+    %{result | failed: [{name, breakpoint}| result.failed]}
+  end
+  defp await_breakpoint({task, {:exit, reason}}, %__MODULE__{} = result) do
+    %{result | failed: [{:exit, reason, task} | result.failed]}
+  end
   defp await_breakpoint({task, nil}, %__MODULE__{} = result) do
     Task.shutdown(task, :brutal_kill)
     %{result | failed: [{:timeout, task} | result.failed]}
@@ -67,7 +90,7 @@ defmodule Resemblixir.Scenario do
   def handle_info({:EXIT, _ref, :process, _pid, :normal}, state) do
     {:noreply, state}
   end
-  
+
   def maybe_stop_process({scenario, parent, remaining}, breakpoint) do
     case {Keyword.pop_first(remaining, breakpoint), scenario.failed} do
       {{_, []}, []} ->

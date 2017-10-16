@@ -6,13 +6,13 @@ defmodule Resemblixir.Compare do
              :raw_mismatch_percentage, :is_same_dimensions, :analysis_time,
              dimension_difference: %{height: nil, width: nil},
              diff_bounds: %{top: nil, bottom: nil, left: nil, right: nil},
-             images: %{ref: nil, test: nil}]
+             images: %{ref: nil, test: nil, diff: nil}]
 
   @type t :: %__MODULE__{
     test: String.t | nil,
     scenario: String.t | nil,
     breakpoint: atom | nil,
-    images: %{required(:ref) => String.t | nil, required(:test) => String.t | nil},
+    images: %{required(:ref) => String.t | nil, required(:test) => String.t | nil, required(:diff) => String.t | nil},
     mismatch_percentage: String.t | nil,
     raw_mismatch_percentage: float | nil,
     dimension_difference: %{required(:width) => integer, required(:height) => integer} | nil,
@@ -24,8 +24,8 @@ defmodule Resemblixir.Compare do
   @spec compare(test_image_path :: String.t, Scenario.t, breakpoint :: atom, ref_image_path :: String.t) :: result
   def compare(%Screenshot{path: test_image_path}, %Scenario{name: test_name}, breakpoint, ref_image_path) when is_binary(test_image_path) do
     # TODO: use :poolboy.transation to run this
-    test_image_path
-    |> open_port(ref_image_path)
+    ref_image_path
+    |> open_port(test_image_path)
     |> await_result(%__MODULE__{scenario: test_name, breakpoint: breakpoint, images: %{ref: ref_image_path, test: test_image_path}})
   end
 
@@ -36,29 +36,31 @@ defmodule Resemblixir.Compare do
     |> analyze_result()
   end
 
-  def format({:ok, %{misMatchPercentage: mismatch, rawMisMatchPercentage: raw_mismatch,
-                     dimensionDifference: %{ height: _, width: _} = diff,
-                     diffBounds: %{ top: _, bottom: _, left: _, right: _} = diff_bounds,
-                     isSameDimensions: is_same_dim, analysisTime: time}},
-                   %__MODULE__{} = data) do
-
-    %{data | mismatch_percentage: mismatch,
-             raw_mismatch_percentage: raw_mismatch,
-             dimension_difference: diff,
-             is_same_dimensions: is_same_dim,
-             diff_bounds: diff_bounds,
-             analysis_time: time}
-  end
+  def format({:ok, %{diff: diff, data: comparison}}, %__MODULE__{} = data), do: do_format(data, diff, comparison)
   def format({:error, error}), do: {:error, error}
   def format(error), do: {:error, {:unexpected_error, error}}
 
-  defp analyze_result({:error, error}), do: {:error, {:json_error, error}}
-  defp analyze_result(%__MODULE__{raw_mismatch_percentage: 0} = result), do: {:ok, result}
-  defp analyze_result(%__MODULE__{} = result), do: {:error, result}
+  defp do_format(%__MODULE__{} = data, diff, %{
+      misMatchPercentage: mismatch, rawMisMatchPercentage: raw_mismatch,
+      dimensionDifference: %{ height: _, width: _} = dimensions,
+      diffBounds: %{ top: _, bottom: _, left: _, right: _} = diff_bounds,
+      isSameDimensions: is_same_dim, analysisTime: time
+    }), do: %{data | mismatch_percentage: mismatch,
+                     raw_mismatch_percentage: raw_mismatch,
+                     dimension_difference: dimensions,
+                     is_same_dimensions: is_same_dim,
+                     diff_bounds: diff_bounds,
+                     analysis_time: time,
+                     images: Map.put(data.images, :diff, diff)}
 
-  def open_port(test_img, ref_img) do
+  defp analyze_result({:error, error}), do: {:error, {:json_error, error}}
+  defp analyze_result(%__MODULE__{dimension_difference: %{width: width, height: height}} = result) when width > 0 or height > 0, do: {:error, result}
+  defp analyze_result(%__MODULE__{raw_mismatch_percentage: mismatch} = result) when mismatch > 0, do: {:error, result}
+  defp analyze_result(%__MODULE__{} = result), do: {:ok, result}
+
+  def open_port(ref_img, test_img) do
     nodejs = System.find_executable("node")
-    System.cmd nodejs, [compare_js(), test_img, ref_img], [stderr_to_stdout: true]
+    System.cmd nodejs, [compare_js(), ref_img, test_img], [stderr_to_stdout: true]
   end
 
   defp close_port(port) do
