@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Resemblixir do
   def do_run(_args, scenarios) when is_list(scenarios) do
     case Resemblixir.run(scenarios) do
       {:ok, _scenarios} -> :ok
-      {:error, error} -> raise error
+      {:error, scenarios} -> raise %Resemblixir.TestFailure{passed: scenarios.passed, failed: scenarios.failed}
     end
   end
 

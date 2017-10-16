@@ -38,3 +38,29 @@ defmodule Resemblixir.NoBreakpointsError do
     %__MODULE__{message: "Scenario #{args[:scenario]} has no breakpoints; please define a Keyword list of breakpoints for this scenario."}
   end
 end
+
+defmodule Resemblixir.TestFailure do
+  defexception [:passed, :failed, :message]
+  def message(args) do
+    [
+      "\t\t\tFailed scenarios:\n",
+      failed_scenarios(args.failed),
+      "\n\n",
+      "\t\t\tScenarios passing:\n",
+      Enum.map(args.passed, & ["\t\t\t", &1.name, "\n" ])
+    ]
+    |> IO.iodata_to_binary()
+  end
+
+  defp failed_scenarios(failed) do
+    for scenario <- failed do
+      [
+        "\t\t\t", scenario.name, ":\n",
+        "\t\t\t\tFailing Breakpoints:\n",
+        Enum.map(scenario.failed, fn {name, data} -> ["\t\t\t\t", Atom.to_string(name), " -- ", inspect(data), "\n"] end),
+        "\t\t\t\tPassing Breakpoints:\n",
+        Enum.map(scenario.passed, fn {name, _} -> ["\t\t\t\t", Atom.to_string(name), "\n"] end)
+      ]
+    end
+  end
+end
