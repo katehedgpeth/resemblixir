@@ -66,6 +66,6 @@ defmodule Resemblixir.Compare do
   def compare_js do
     :resemblixir
     |> Application.app_dir()
-    |> Path.join("/priv/js/compare.js")
+    |> Path.join("/priv/js/compare.bundle.js")
   end
 end

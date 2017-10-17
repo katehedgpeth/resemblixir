@@ -22,5 +22,9 @@
   "dependencies": {
     "canvas": "^1.6.7",
     "resemblejs": "^2.2.6"
+  },
+  "devDependencies": {
+    "webpack": "^3.7.1",
+    "webpack-node-externals": "^1.6.0"
   }
 }
