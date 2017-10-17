@@ -22,3 +22,4 @@ erl_crash.dump
 /node_modules
 /screenshots
 /priv/resemblixir
+/priv/js/compare.bundle.js.map
