@@ -60,22 +60,736 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
+/******/ 	return __webpack_require__(__webpack_require__.s = 5);
 /******/ })
 /************************************************************************/
 /******/ ([
 /* 0 */
-/***/ (function(module, exports) {
+/***/ (function(module, exports, __webpack_require__) {
 
-module.exports = require("canvas");
+"use strict";
+
+
+module.exports = __webpack_require__(7);
+
 
 /***/ }),
 /* 1 */
+/***/ (function(module, exports) {
+
+module.exports = require("stream");
+
+/***/ }),
+/* 2 */
 /***/ (function(module, exports, __webpack_require__) {
 
-const resemble = __webpack_require__(2);
-const fs = __webpack_require__(3);
-const path = __webpack_require__(4);
+"use strict";
+
+
+/*!
+ * Canvas
+ * Copyright (c) 2010 LearnBoost <tj@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var canvas = __webpack_require__(0)
+  , Canvas = canvas.Canvas
+  , Image = canvas.Image
+  , cairoVersion = canvas.cairoVersion
+  , Context2d = __webpack_require__(3)
+  , PNGStream = __webpack_require__(10)
+  , PDFStream = __webpack_require__(11)
+  , JPEGStream = __webpack_require__(12)
+  , FontFace = canvas.FontFace
+  , fs = __webpack_require__(4)
+  , packageJson = __webpack_require__(13)
+  , FORMATS = ['image/png', 'image/jpeg'];
+
+/**
+ * Export `Canvas` as the module.
+ */
+
+var Canvas = exports = module.exports = Canvas;
+
+/**
+ * Library version.
+ */
+
+exports.version = packageJson.version;
+
+/**
+ * Cairo version.
+ */
+
+exports.cairoVersion = cairoVersion;
+
+/**
+ * jpeglib version.
+ */
+
+if (canvas.jpegVersion) {
+  exports.jpegVersion = canvas.jpegVersion;
+}
+
+/**
+ * gif_lib version.
+ */
+
+if (canvas.gifVersion) {
+  exports.gifVersion = canvas.gifVersion.replace(/[^.\d]/g, '');
+}
+
+/**
+ * freetype version.
+ */
+
+if (canvas.freetypeVersion) {
+  exports.freetypeVersion = canvas.freetypeVersion;
+}
+
+/**
+ * Expose constructors.
+ */
+
+exports.Context2d = Context2d;
+exports.PNGStream = PNGStream;
+exports.PDFStream = PDFStream;
+exports.JPEGStream = JPEGStream;
+exports.Image = Image;
+exports.ImageData = canvas.ImageData;
+
+if (FontFace) {
+  var Font = function Font(name, path, idx) {
+    this.name = name;
+    this._faces = {};
+
+    this.addFace(path, 'normal', 'normal', idx);
+  };
+
+  Font.prototype.addFace = function(path, weight, style, idx) {
+    style = style || 'normal';
+    weight = weight || 'normal';
+
+    var face = new FontFace(path, idx || 0);
+    this._faces[weight + '-' + style] = face;
+  };
+
+  Font.prototype.getFace = function(weightStyle) {
+    return this._faces[weightStyle] || this._faces['normal-normal'];
+  };
+
+  exports.Font = Font;
+}
+
+/**
+ * Context2d implementation.
+ */
+
+__webpack_require__(3);
+
+/**
+ * Image implementation.
+ */
+
+__webpack_require__(14);
+
+/**
+ * Inspect canvas.
+ *
+ * @return {String}
+ * @api public
+ */
+
+Canvas.prototype.inspect = function(){
+  return '[Canvas ' + this.width + 'x' + this.height + ']';
+};
+
+/**
+ * Get a context object.
+ *
+ * @param {String} contextId
+ * @return {Context2d}
+ * @api public
+ */
+
+Canvas.prototype.getContext = function(contextId){
+  if ('2d' == contextId) {
+    var ctx = this._context2d || (this._context2d = new Context2d(this));
+    this.context = ctx;
+    ctx.canvas = this;
+    return ctx;
+  }
+};
+
+/**
+ * Create a `PNGStream` for `this` canvas.
+ *
+ * @return {PNGStream}
+ * @api public
+ */
+
+Canvas.prototype.pngStream =
+Canvas.prototype.createPNGStream = function(){
+  return new PNGStream(this);
+};
+
+/**
+ * Create a synchronous `PNGStream` for `this` canvas.
+ *
+ * @return {PNGStream}
+ * @api public
+ */
+
+Canvas.prototype.syncPNGStream =
+Canvas.prototype.createSyncPNGStream = function(){
+  return new PNGStream(this, true);
+};
+
+/**
+ * Create a `PDFStream` for `this` canvas.
+ *
+ * @return {PDFStream}
+ * @api public
+ */
+
+Canvas.prototype.pdfStream =
+Canvas.prototype.createPDFStream = function(){
+  return new PDFStream(this);
+};
+
+/**
+ * Create a synchronous `PDFStream` for `this` canvas.
+ *
+ * @return {PDFStream}
+ * @api public
+ */
+
+Canvas.prototype.syncPDFStream =
+Canvas.prototype.createSyncPDFStream = function(){
+  return new PDFStream(this, true);
+};
+
+/**
+ * Create a `JPEGStream` for `this` canvas.
+ *
+ * @param {Object} options
+ * @return {JPEGStream}
+ * @api public
+ */
+
+Canvas.prototype.jpegStream =
+Canvas.prototype.createJPEGStream = function(options){
+  return this.createSyncJPEGStream(options);
+};
+
+/**
+ * Create a synchronous `JPEGStream` for `this` canvas.
+ *
+ * @param {Object} options
+ * @return {JPEGStream}
+ * @api public
+ */
+
+Canvas.prototype.syncJPEGStream =
+Canvas.prototype.createSyncJPEGStream = function(options){
+  options = options || {};
+  // Don't allow the buffer size to exceed the size of the canvas (#674)
+  var maxBufSize = this.width * this.height * 4;
+  var clampedBufSize = Math.min(options.bufsize || 4096, maxBufSize);
+  return new JPEGStream(this, {
+      bufsize: clampedBufSize
+    , quality: options.quality || 75
+    , progressive: options.progressive || false
+  });
+};
+
+/**
+ * Return a data url. Pass a function for async support (required for "image/jpeg").
+ *
+ * @param {String} type, optional, one of "image/png" or "image/jpeg", defaults to "image/png"
+ * @param {Object|Number} encoderOptions, optional, options for jpeg compression (see documentation for Canvas#jpegStream) or the JPEG encoding quality from 0 to 1.
+ * @param {Function} fn, optional, callback for asynchronous operation. Required for type "image/jpeg".
+ * @return {String} data URL if synchronous (callback omitted)
+ * @api public
+ */
+
+Canvas.prototype.toDataURL = function(a1, a2, a3){
+  // valid arg patterns (args -> [type, opts, fn]):
+  // [] -> ['image/png', null, null]
+  // [qual] -> ['image/png', null, null]
+  // [undefined] -> ['image/png', null, null]
+  // ['image/png'] -> ['image/png', null, null]
+  // ['image/png', qual] -> ['image/png', null, null]
+  // [fn] -> ['image/png', null, fn]
+  // [type, fn] -> [type, null, fn]
+  // [undefined, fn] -> ['image/png', null, fn]
+  // ['image/png', qual, fn] -> ['image/png', null, fn]
+  // ['image/jpeg', fn] -> ['image/jpeg', null, fn]
+  // ['image/jpeg', opts, fn] -> ['image/jpeg', opts, fn]
+  // ['image/jpeg', qual, fn] -> ['image/jpeg', {quality: qual}, fn]
+  // ['image/jpeg', undefined, fn] -> ['image/jpeg', null, fn]
+
+  var type = 'image/png';
+  var opts = {};
+  var fn;
+
+  if ('function' === typeof a1) {
+    fn = a1;
+  } else {
+    if ('string' === typeof a1 && FORMATS.indexOf(a1.toLowerCase()) !== -1) {
+      type = a1.toLowerCase();
+    }
+
+    if ('function' === typeof a2) {
+      fn = a2;
+    } else {
+      if ('object' === typeof a2) {
+        opts = a2;
+      } else if ('number' === typeof a2) {
+        opts = {quality: Math.max(0, Math.min(1, a2)) * 100};
+      }
+
+      if ('function' === typeof a3) {
+        fn = a3;
+      } else if (undefined !== a3) {
+        throw new TypeError(typeof a3 + ' is not a function');
+      }
+    }
+  }
+
+  if (this.width === 0 || this.height === 0) {
+    // Per spec, if the bitmap has no pixels, return this string:
+    var str = "data:,";
+    if (fn) {
+      setTimeout(function() {
+        fn(null, str);
+      });
+    }
+    return str;
+  }
+
+  if ('image/png' === type) {
+    if (fn) {
+      this.toBuffer(function(err, buf){
+        if (err) return fn(err);
+        fn(null, 'data:image/png;base64,' + buf.toString('base64'));
+      });
+    } else {
+      return 'data:image/png;base64,' + this.toBuffer().toString('base64');
+    }
+
+  } else if ('image/jpeg' === type) {
+    if (undefined === fn) {
+      throw new Error('Missing required callback function for format "image/jpeg"');
+    }
+
+    var stream = this.jpegStream(opts);
+    // note that jpegStream is synchronous
+    var buffers = [];
+    stream.on('data', function (chunk) {
+      buffers.push(chunk);
+    });
+    stream.on('error', function (err) {
+      fn(err);
+    });
+    stream.on('end', function() {
+      var result = 'data:image/jpeg;base64,' + Buffer.concat(buffers).toString('base64');
+      fn(null, result);
+    });
+  }
+};
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*!
+ * Canvas - Context2d
+ * Copyright (c) 2010 LearnBoost <tj@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var canvas = __webpack_require__(0)
+  , Context2d = canvas.CanvasRenderingContext2d
+  , CanvasGradient = canvas.CanvasGradient
+  , CanvasPattern = canvas.CanvasPattern
+  , ImageData = canvas.ImageData;
+
+var parseCssFont = __webpack_require__(8);
+
+var unitsCss = __webpack_require__(9);
+
+/**
+ * Export `Context2d` as the module.
+ */
+
+var Context2d = exports = module.exports = Context2d;
+
+/**
+ * Cache color string RGBA values.
+ */
+
+var cache = {};
+
+/**
+ * Text baselines.
+ */
+
+var baselines = ['alphabetic', 'top', 'bottom', 'middle', 'ideographic', 'hanging'];
+
+/**
+ * Parse font `str`.
+ *
+ * @param {String} str
+ * @return {Object}
+ * @api private
+ */
+
+var parseFont = exports.parseFont = function(str) {
+  var parsedFont;
+
+  // Try to parse the font string using parse-css-font.
+  // It will throw an exception if it fails.
+  try {
+    parsedFont = parseCssFont(str);
+  }
+  catch (e) {
+    // Invalid
+    return;
+  }
+
+  // Cached
+  if (cache[str]) return cache[str];
+
+  // Parse size into value and unit using units-css
+  var size = unitsCss.parse(parsedFont.size);
+
+  // TODO: dpi
+  // TODO: remaining unit conversion
+  switch (size.unit) {
+    case 'pt':
+      size.value /= .75;
+      break;
+    case 'in':
+      size.value *= 96;
+      break;
+    case 'mm':
+      size.value *= 96.0 / 25.4;
+      break;
+    case 'cm':
+      size.value *= 96.0 / 2.54;
+      break;
+  }
+
+  // Populate font object
+  var font = {
+    weight: parsedFont.weight,
+    style: parsedFont.style,
+    size: size.value,
+    unit: size.unit,
+    family: parsedFont.family[0]
+  };
+
+  return cache[str] = font;
+};
+
+/**
+ * Enable or disable image smoothing.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('imageSmoothingEnabled', function(val){
+  this._imageSmoothing = !! val;
+  this.patternQuality = val ? 'best' : 'fast';
+});
+
+/**
+ * Get image smoothing value.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('imageSmoothingEnabled', function(val){
+  return !! this._imageSmoothing;
+});
+
+/**
+ * Create a pattern from `Image` or `Canvas`.
+ *
+ * @param {Image|Canvas} image
+ * @param {String} repetition
+ * @return {CanvasPattern}
+ * @api public
+ */
+
+Context2d.prototype.createPattern = function(image, repetition){
+  // TODO Use repetition (currently always 'repeat')
+  return new CanvasPattern(image);
+};
+
+/**
+ * Create a linear gradient at the given point `(x0, y0)` and `(x1, y1)`.
+ *
+ * @param {Number} x0
+ * @param {Number} y0
+ * @param {Number} x1
+ * @param {Number} y1
+ * @return {CanvasGradient}
+ * @api public
+ */
+
+Context2d.prototype.createLinearGradient = function(x0, y0, x1, y1){
+  return new CanvasGradient(x0, y0, x1, y1);
+};
+
+/**
+ * Create a radial gradient at the given point `(x0, y0)` and `(x1, y1)`
+ * and radius `r0` and `r1`.
+ *
+ * @param {Number} x0
+ * @param {Number} y0
+ * @param {Number} r0
+ * @param {Number} x1
+ * @param {Number} y1
+ * @param {Number} r1
+ * @return {CanvasGradient}
+ * @api public
+ */
+
+Context2d.prototype.createRadialGradient = function(x0, y0, r0, x1, y1, r1){
+  return new CanvasGradient(x0, y0, r0, x1, y1, r1);
+};
+
+/**
+ * Reset transform matrix to identity, then apply the given args.
+ *
+ * @param {...}
+ * @api public
+ */
+
+Context2d.prototype.setTransform = function(){
+  this.resetTransform();
+  this.transform.apply(this, arguments);
+};
+
+/**
+ * Set the fill style with the given css color string.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('fillStyle', function(val){
+  if (!val) return;
+  if ('CanvasGradient' == val.constructor.name
+    || 'CanvasPattern' == val.constructor.name) {
+    this.lastFillStyle = val;
+    this._setFillPattern(val);
+  } else if ('string' == typeof val) {
+    this._setFillColor(val);
+  }
+});
+
+/**
+ * Get previous fill style.
+ *
+ * @return {CanvasGradient|String}
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('fillStyle', function(){
+  return this.lastFillStyle || this.fillColor;
+});
+
+/**
+ * Set the stroke style with the given css color string.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('strokeStyle', function(val){
+  if (!val) return;
+  if ('CanvasGradient' == val.constructor.name
+    || 'CanvasPattern' == val.constructor.name) {
+    this.lastStrokeStyle = val;
+    this._setStrokePattern(val);
+  } else if ('string' == typeof val) {
+    this._setStrokeColor(val);
+  }
+});
+
+/**
+ * Get previous stroke style.
+ *
+ * @return {CanvasGradient|String}
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('strokeStyle', function(){
+  return this.lastStrokeStyle || this.strokeColor;
+});
+
+/**
+ * Register `font` for usage.
+ *
+ * @param {Font} font
+ * @api public
+ */
+
+Context2d.prototype.addFont = function(font) {
+  this._fonts = this._fonts || {};
+  if (this._fonts[font.name]) return;
+  this._fonts[font.name] = font;
+};
+
+/**
+ * Set font.
+ *
+ * @see exports.parseFont()
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('font', function(val){
+  if (!val) return;
+  if ('string' == typeof val) {
+    var font;
+    if (font = parseFont(val)) {
+      this.lastFontString = val;
+
+      var fonts = this._fonts;
+      if (fonts && fonts[font.family]) {
+        var fontObj = fonts[font.family];
+        var type = font.weight + '-' + font.style;
+
+        var fontFace = fontObj.getFace(type);
+        this._setFontFace(fontFace, font.size);
+      } else {
+        this._setFont(
+            font.weight
+          , font.style
+          , font.size
+          , font.unit
+          , font.family);
+      }
+    }
+  }
+});
+
+/**
+ * Get the current font.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('font', function(){
+  return this.lastFontString || '10px sans-serif';
+});
+
+/**
+ * Set text baseline.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('textBaseline', function(val){
+  if (!val) return;
+  var n = baselines.indexOf(val);
+  if (~n) {
+    this.lastBaseline = val;
+    this._setTextBaseline(n);
+  }
+});
+
+/**
+ * Get the current baseline setting.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('textBaseline', function(){
+  return this.lastBaseline || 'alphabetic';
+});
+
+/**
+ * Set text alignment.
+ *
+ * @api public
+ */
+
+Context2d.prototype.__defineSetter__('textAlign', function(val){
+  switch (val) {
+    case 'center':
+      this._setTextAlignment(0);
+      this.lastTextAlignment = val;
+      break;
+    case 'left':
+    case 'start':
+      this._setTextAlignment(-1);
+      this.lastTextAlignment = val;
+      break;
+    case 'right':
+    case 'end':
+      this._setTextAlignment(1);
+      this.lastTextAlignment = val;
+      break;
+  }
+});
+
+/**
+ * Get the current font.
+ *
+ * @see exports.parseFont()
+ * @api public
+ */
+
+Context2d.prototype.__defineGetter__('textAlign', function(){
+  return this.lastTextAlignment || 'start';
+});
+
+/**
+ * Create `ImageData` with the given dimensions or
+ * `ImageData` instance for dimensions.
+ *
+ * @param {Number|ImageData} width
+ * @param {Number} height
+ * @return {ImageData}
+ * @api public
+ */
+
+Context2d.prototype.createImageData = function(width, height){
+  if ('ImageData' == width.constructor.name) {
+    height = width.height;
+    width = width.width;
+  }
+  return new ImageData(new Uint8ClampedArray(width * height * 4), width, height);
+};
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports) {
+
+module.exports = require("fs");
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+const resemble = __webpack_require__(6);
+const fs = __webpack_require__(4);
+const path = __webpack_require__(15);
 
 //process.stdout.write(JSON.stringify(process.argv))
 
@@ -104,7 +818,7 @@ resemble(referenceFile).compareTo(testFile).onComplete(function(data) {
 
 
 /***/ }),
-/* 2 */
+/* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
@@ -188,7 +902,7 @@ URL: https://github.com/Huddle/Resemble.js
 	var document = typeof window != "undefined" ? window.document : {
 		createElement: function() {
 			// This will work as long as only createElement is used on window.document
-			var Canvas = __webpack_require__(0);
+			var Canvas = __webpack_require__(2);
 			return new Canvas();
 		}
 	};
@@ -285,7 +999,7 @@ URL: https://github.com/Huddle/Resemble.js
 			if (typeof Image !== 'undefined') {
 				hiddenImage = new Image();
 			} else {
-				var CanvasImage = __webpack_require__(0).Image;
+				var CanvasImage = __webpack_require__(2).Image;
 				hiddenImage = new CanvasImage();
 				hiddenImage.setAttribute = function setAttribute() { };
 			}
@@ -864,13 +1578,302 @@ URL: https://github.com/Huddle/Resemble.js
 
 
 /***/ }),
-/* 3 */
+/* 7 */
 /***/ (function(module, exports) {
 
-module.exports = require("fs");
+throw new Error("Module parse failed: /Users/katehedgpeth/Documents/resemblixir/node_modules/canvas/build/Release/canvas.node Unexpected character '�' (1:0)\nYou may need an appropriate loader to handle this file type.\n(Source code omitted for this binary file)");
 
 /***/ }),
-/* 4 */
+/* 8 */
+/***/ (function(module, exports) {
+
+module.exports = require("parse-css-font");
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports) {
+
+module.exports = require("units-css");
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*!
+ * Canvas - PNGStream
+ * Copyright (c) 2010 LearnBoost <tj@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var Stream = __webpack_require__(1).Stream;
+
+/**
+ * Initialize a `PNGStream` with the given `canvas`.
+ *
+ * "data" events are emitted with `Buffer` chunks, once complete the
+ * "end" event is emitted. The following example will stream to a file
+ * named "./my.png".
+ *
+ *     var out = fs.createWriteStream(__dirname + '/my.png')
+ *       , stream = canvas.createPNGStream();
+ *
+ *     stream.pipe(out);
+ *
+ * @param {Canvas} canvas
+ * @param {Boolean} sync
+ * @api public
+ */
+
+var PNGStream = module.exports = function PNGStream(canvas, sync) {
+  var self = this
+    , method = sync
+      ? 'streamPNGSync'
+      : 'streamPNG';
+  this.sync = sync;
+  this.canvas = canvas;
+  this.readable = true;
+  // TODO: implement async
+  if ('streamPNG' == method) method = 'streamPNGSync';
+  process.nextTick(function(){
+    canvas[method](function(err, chunk, len){
+      if (err) {
+        self.emit('error', err);
+        self.readable = false;
+      } else if (len) {
+        self.emit('data', chunk, len);
+      } else {
+        self.emit('end');
+        self.readable = false;
+      }
+    });
+  });
+};
+
+/**
+ * Inherit from `EventEmitter`.
+ */
+
+PNGStream.prototype.__proto__ = Stream.prototype;
+
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*!
+ * Canvas - PDFStream
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var Stream = __webpack_require__(1).Stream;
+
+/**
+ * Initialize a `PDFStream` with the given `canvas`.
+ *
+ * "data" events are emitted with `Buffer` chunks, once complete the
+ * "end" event is emitted. The following example will stream to a file
+ * named "./my.pdf".
+ *
+ *     var out = fs.createWriteStream(__dirname + '/my.pdf')
+ *       , stream = canvas.createPDFStream();
+ *
+ *     stream.pipe(out);
+ *
+ * @param {Canvas} canvas
+ * @param {Boolean} sync
+ * @api public
+ */
+
+var PDFStream = module.exports = function PDFStream(canvas, sync) {
+  var self = this
+    , method = sync
+      ? 'streamPDFSync'
+      : 'streamPDF';
+  this.sync = sync;
+  this.canvas = canvas;
+  this.readable = true;
+  // TODO: implement async
+  if ('streamPDF' == method) method = 'streamPDFSync';
+  process.nextTick(function(){
+    canvas[method](function(err, chunk, len){
+      if (err) {
+        self.emit('error', err);
+        self.readable = false;
+      } else if (len) {
+        self.emit('data', chunk, len);
+      } else {
+        self.emit('end');
+        self.readable = false;
+      }
+    });
+  });
+};
+
+/**
+ * Inherit from `EventEmitter`.
+ */
+
+PDFStream.prototype.__proto__ = Stream.prototype;
+
+
+/***/ }),
+/* 12 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*!
+ * Canvas - JPEGStream
+ * Copyright (c) 2010 LearnBoost <tj@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var Stream = __webpack_require__(1).Stream;
+
+/**
+ * Initialize a `JPEGStream` with the given `canvas`.
+ *
+ * "data" events are emitted with `Buffer` chunks, once complete the
+ * "end" event is emitted. The following example will stream to a file
+ * named "./my.jpeg".
+ *
+ *     var out = fs.createWriteStream(__dirname + '/my.jpeg')
+ *       , stream = canvas.createJPEGStream();
+ *
+ *     stream.pipe(out);
+ *
+ * @param {Canvas} canvas
+ * @param {Boolean} sync
+ * @api public
+ */
+
+var JPEGStream = module.exports = function JPEGStream(canvas, options, sync) {
+  var self = this
+    , method = sync
+      ? 'streamJPEGSync'
+      : 'streamJPEG';
+  this.options = options;
+  this.sync = sync;
+  this.canvas = canvas;
+  this.readable = true;
+  // TODO: implement async
+  if ('streamJPEG' == method) method = 'streamJPEGSync';
+  process.nextTick(function(){
+    canvas[method](options.bufsize, options.quality, options.progressive, function(err, chunk){
+      if (err) {
+        self.emit('error', err);
+        self.readable = false;
+      } else if (chunk) {
+        self.emit('data', chunk);
+      } else {
+        self.emit('end');
+        self.readable = false;
+      }
+    });
+  });
+};
+
+/**
+ * Inherit from `EventEmitter`.
+ */
+
+JPEGStream.prototype.__proto__ = Stream.prototype;
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports) {
+
+module.exports = {"_args":[[{"name":"canvas","raw":"canvas","rawSpec":"","scope":null,"spec":"latest","type":"tag"},"/Users/katehedgpeth/Documents/resemblixir"]],"_from":"canvas@latest","_id":"canvas@1.6.7","_inCache":true,"_installable":true,"_location":"/canvas","_nodeVersion":"8.4.0","_npmOperationalInternal":{"host":"s3://npm-registry-packages","tmp":"tmp/canvas-1.6.7.tgz_1504863402684_0.15115133952349424"},"_npmUser":{"email":"linus@folkdatorn.se","name":"linusu"},"_npmVersion":"5.3.0","_phantomChildren":{},"_requested":{"name":"canvas","raw":"canvas","rawSpec":"","scope":null,"spec":"latest","type":"tag"},"_requiredBy":["/"],"_resolved":"https://registry.npmjs.org/canvas/-/canvas-1.6.7.tgz","_shasum":"2d8a04b453ec5d6510727cfc697e236dc4ae85dc","_shrinkwrap":null,"_spec":"canvas","_where":"/Users/katehedgpeth/Documents/resemblixir","author":{"email":"tj@learnboost.com","name":"TJ Holowaychuk"},"bugs":{"url":"https://github.com/Automattic/node-canvas/issues"},"contributors":[{"email":"nathan@tootallnate.net","name":"Nathan Rajlich"},{"email":"r@va.gg","name":"Rod Vagg"},{"email":"kangax@gmail.com","name":"Juriy Zaytsev"}],"dependencies":{"nan":"^2.4.0","parse-css-font":"^2.0.2","units-css":"^0.4.0"},"description":"Canvas graphics API backed by Cairo","devDependencies":{"body-parser":"^1.13.3","express":"^4.13.2","mocha":"*","pug":"^2.0.0-beta3","standard":"^10.0.3"},"directories":{},"dist":{"integrity":"sha512-QLFCd9ca/Ww3s4vUf1KxmTX2QoYu8sZkSvXQ36RdbqNETDjn/I1H01ZEtWGGLcY0T7zNO6nsGoHX+0zrMy6JrQ==","shasum":"2d8a04b453ec5d6510727cfc697e236dc4ae85dc","tarball":"https://registry.npmjs.org/canvas/-/canvas-1.6.7.tgz"},"engines":{"node":">=0.8.0"},"gitHead":"db4e48c3936095e3bf191ab7b70d91eaa86db37c","gypfile":true,"homepage":"https://github.com/Automattic/node-canvas","keywords":["canvas","graphic","graphics","pixman","cairo","image","images","pdf"],"license":"MIT","main":"./lib/canvas.js","maintainers":[{"email":"linus@folkdatorn.se","name":"linusu"},{"email":"d@domenic.me","name":"domenic"},{"email":"kangax@gmail.com","name":"kangax"},{"email":"nathan@tootallnate.net","name":"tootallnate"},{"email":"rauchg@gmail.com","name":"rauchg"},{"email":"tj@vision-media.ca","name":"tjholowaychuk"}],"name":"canvas","optionalDependencies":{},"readme":"ERROR: No README data found!","repository":{"type":"git","url":"git://github.com/Automattic/node-canvas.git"},"scripts":{"benchmark":"node benchmarks/run.js","install":"node-gyp rebuild","prebenchmark":"node-gyp build","pretest":"node-gyp build","pretest-server":"node-gyp build","test":"standard examples/*.js && mocha test/*.test.js","test-server":"node test/server.js"},"version":"1.6.7"}
+
+/***/ }),
+/* 14 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+/*!
+ * Canvas - Image
+ * Copyright (c) 2010 LearnBoost <tj@learnboost.com>
+ * MIT Licensed
+ */
+
+/**
+ * Module dependencies.
+ */
+
+var Canvas = __webpack_require__(0)
+  , Image = Canvas.Image;
+
+/**
+ * Src setter.
+ *
+ *  - convert data uri to `Buffer`
+ *
+ * @param {String|Buffer} val filename, buffer, data uri
+ * @api public
+ */
+
+Image.prototype.__defineSetter__('src', function(val){
+  if ('string' == typeof val && 0 == val.indexOf('data:')) {
+    val = val.slice(val.indexOf(',') + 1);
+    this.source = new Buffer(val, 'base64');
+  } else {
+    this.source = val;
+  }
+});
+
+/**
+ * Src getter.
+ *
+ * TODO: return buffer
+ *
+ * @api public
+ */
+
+Image.prototype.__defineGetter__('src', function(){
+  return this.source;
+});
+
+/**
+ * Inspect image.
+ *
+ * TODO: indicate that the .src was a buffer, data uri etc
+ *
+ * @return {String}
+ * @api public
+ */
+
+Image.prototype.inspect = function(){
+  return '[Image'
+    + (this.complete ? ':' + this.width + 'x' + this.height : '')
+    + (this.src ? ' ' + this.src : '')
+    + (this.complete ? ' complete' : '')
+    + ']';
+};
+
+
+/***/ }),
+/* 15 */
 /***/ (function(module, exports) {
 
 module.exports = require("path");

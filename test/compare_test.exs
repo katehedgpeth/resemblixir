@@ -13,7 +13,8 @@ defmodule Resemblixir.CompareTest do
 
   describe "compare/1" do
     test "returns {:error, %Compare{}} and generates a diff when files are different size", %{test: test, ref: ref} do
-      assert {:error, %Compare{images: %{diff: diff_path}}} = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_3"}, :xs, ref)
+      result = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_3"}, :xs, ref)
+      assert {:error, %Compare{images: %{diff: diff_path}}} = result
       assert is_binary(diff_path)
       assert File.exists?(diff_path)
       assert :ok = File.rm(diff_path)
@@ -29,19 +30,12 @@ defmodule Resemblixir.CompareTest do
     end
 
     test "returns {:ok, %Compare{}} when files match", %{test: test} do
-      assert {:ok, %Compare{images: %{diff: diff}, dimension_difference: dims, raw_mismatch_percentage: raw_mismatch, mismatch_percentage: mismatch}} = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_4"}, :xs, test)
+      result = Compare.compare(%Screenshot{path: test}, %Scenario{name: "test_4"}, :xs, test)
+      assert {:ok, %Compare{images: %{diff: diff}, dimension_difference: dims, raw_mismatch_percentage: raw_mismatch, mismatch_percentage: mismatch}} = result
       assert mismatch == "0.00"
       assert raw_mismatch == 0
       assert dims == %{width: 0, height: 0}
       assert diff == nil
-    end
-  end
-
-  describe "open_port" do
-    test "successfully runs an image analysis", %{test: test} do
-      assert File.exists? Compare.compare_js()
-      assert {result, 0} = Compare.open_port(test, test)
-      assert {:ok, %{diff: _, data: %{isSameDimensions: _, dimensionDifference: _, rawMisMatchPercentage: _, misMatchPercentage: _}}} = Poison.decode(result, keys: :atoms)
     end
   end
 end
