@@ -26,7 +26,7 @@ defmodule Resemblixir.Scenario do
     |> Enum.reduce(scenario, &await_breakpoint/2)
     |> finish()
   end
-  defp do_run({:error, %HTTPoison.Error{id: nil, reason: :eaddrnotavail}}, %__MODULE__{} = scenario) do
+  defp do_run({:error, %HTTPoison.Error{id: nil, reason: _}}, %__MODULE__{} = scenario) do
     raise %Resemblixir.UrlError{scenario: scenario}
   end
 
