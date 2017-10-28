@@ -1,8 +1,15 @@
 defmodule Resemblixir.ScenarioTest do
-  alias Resemblixir.{Paths, Scenario, MissingReferenceError, References, Compare}
+  alias Resemblixir.{Paths, Scenario, MissingReferenceError, References, Compare, UrlError}
   use Resemblixir.ScenarioCase, async: true
 
   describe "run/1" do
+    @tag generate_scenario: false
+    test "raises an error if the url doesn't return the expected status code" do
+      assert_raise UrlError, fn ->
+        Scenario.run(%Scenario{url: "http://localhost:0000/bad_url", name: "bad url", breakpoints: %{xs: 300}, folder: "/bad_folder"})
+      end
+    end
+
     test "returns {:ok, %Scenario{}} when all breakpoints pass", %{scenarios: [scenario]} do
       assert {:ok, %Scenario{failed: failed, passed: passed}} = Scenario.run(scenario)
       assert failed == []

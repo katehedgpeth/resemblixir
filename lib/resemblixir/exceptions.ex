@@ -39,6 +39,13 @@ defmodule Resemblixir.NoBreakpointsError do
   end
 end
 
+defmodule Resemblixir.UrlError do
+  defexception [:message, :scenario]
+  def message(_args) do
+    "Could not access url! Did you remember to start your server?"
+  end
+end
+
 defmodule Resemblixir.TestFailure do
   defexception [:passed, :failed, :message]
   def message(args) do

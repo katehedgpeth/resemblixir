@@ -1,38 +1,34 @@
 defmodule Resemblixir.Scenario do
   use GenServer
   alias Resemblixir.{Breakpoint, Compare}
-  defstruct [:name, :url, :breakpoints, :folder, passed: [], failed: []]
+  defstruct [:name, :url, :breakpoints, :folder, status_code: 200, passed: [], failed: []]
 
   @type t :: %__MODULE__{
     url: String.t,
     breakpoints: Keyword.t,
+    status_code: integer,
     folder: String.t,
     passed: [Compare.t],
     failed: [Compare.t]
   }
 
-  def run(%__MODULE__{breakpoints: %{} = breakpoints, name: name, url: url, folder: "/" <> _} = scenario)
+  def run(%__MODULE__{breakpoints: %{}, name: name, url: url, folder: "/" <> _} = scenario)
   when is_binary(name) and is_binary(url) do
+    url
+    |> HTTPoison.get()
+    |> do_run(scenario)
+  end
+
+  defp do_run({:ok, %HTTPoison.Response{status_code: status_code}}, %__MODULE__{breakpoints: %{} = breakpoints, folder: "/" <> _, status_code: status_code} = scenario) do
     breakpoints
     |> Enum.map(& Task.async(fn -> Breakpoint.run(&1, scenario) end))
     |> Task.yield_many()
     |> Enum.reduce(scenario, &await_breakpoint/2)
     |> finish()
   end
-
-  #  defp get_timeout(%__MODULE__{breakpoints: breakpoints}) do
-  #    Resemblixir.PhantomJs
-  #    |> GenServer.call(:queue_length)
-  #    |> do_breakpoint_count(Map.keys(breakpoints))
-  #  end
-  #
-  #  defp do_breakpoint_count(queue_size, breakpoints) when is_list(breakpoints) do
-  #    breakpoints
-  #    |> length()
-  #    |> Kernel.+(queue_size)
-  #    |> Kernel.*(3_000)
-  #    |> IO.inspect(label: "timeout length")
-  #  end
+  defp do_run({:error, %HTTPoison.Error{id: nil, reason: :eaddrnotavail}}, %__MODULE__{} = scenario) do
+    raise %Resemblixir.UrlError{scenario: scenario}
+  end
 
   defp await_breakpoint({_task, {:ok, {:ok, {name, %Compare{} = breakpoint}}}}, %__MODULE__{} = result) do
     %{result | passed: [{name, breakpoint} | result.passed]}
