@@ -21,5 +21,6 @@ defmodule Mix.Tasks.Resemblixir do
       "All scenarios passed!\n",
       Enum.map(scenarios, &[&1.name, "\n"])
     ]
+    |> IO.write()
   end
 end
