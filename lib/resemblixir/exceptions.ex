@@ -45,7 +45,7 @@ defmodule Resemblixir.TestFailure do
     [
       "\n Some scenarios did not pass :(\n\n",
       "Failed scenarios:\n",
-      failed_scenarios(args.failed),
+      Enum.map(args.failed, &failed_scenario/1),
       "\n\n",
       "Scenarios passing:\n",
       Enum.map(args.passed, & ["\s\s\s", &1.name, "\n" ])
@@ -53,17 +53,16 @@ defmodule Resemblixir.TestFailure do
     |> IO.iodata_to_binary()
   end
 
-  defp failed_scenarios(failed) do
-    for scenario <- failed do
-      [
-        "\s\s", scenario.name, ":\n",
-        "\s\s\s\sFailing Breakpoints:\n",
-        Enum.map(scenario.failed, &failed_breakpoint/1),
-        "\n\n",
-        "\s\s\s\sPassing Breakpoints:\n",
-        Enum.map(scenario.passed, fn {name, _} -> ["\s\s\s\s", Atom.to_string(name), "\n"] end)
-      ]
-    end
+  defp failed_scenario(:timeout), do: "Scenario timed out"
+  defp failed_scenario(%Resemblixir.Scenario{} = scenario) do
+    [
+      "\s\s", scenario.name, ":\n",
+      "\s\s\s\sFailing Breakpoints:\n",
+      Enum.map(scenario.failed, &failed_breakpoint/1),
+      "\n\n",
+      "\s\s\s\sPassing Breakpoints:\n",
+      Enum.map(scenario.passed, fn {name, _} -> ["\s\s\s\s", Atom.to_string(name), "\n"] end)
+    ]
   end
 
   defp failed_breakpoint({name, %Resemblixir.MissingReferenceError{}}) do

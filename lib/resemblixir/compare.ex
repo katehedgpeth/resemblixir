@@ -41,10 +41,7 @@ defmodule Resemblixir.Compare do
   end
 
   defp await_result(%__MODULE__{images: %{ref: ref}} = state, pid) when is_binary(ref) do
-    key = path_to_id(ref, "ref")
     receive do
-      {:message, message} ->
-        await_result(state, pid)
       {:result, "caught error:" <> error} ->
         {:error, {:javascript_error, error}, state}
       {:result, "not returned"} ->
@@ -65,7 +62,7 @@ defmodule Resemblixir.Compare do
   end
 
   def init({%__MODULE__{} = state, parent}) when is_pid(parent) do
-    send self, :start
+    send self(), :start
     {:ok, {state, parent}}
   end
 
@@ -100,11 +97,6 @@ defmodule Resemblixir.Compare do
     send parent, {:result, result}
   end
 
-  def handle_info(message, {%__MODULE__{} = state, parent}) do
-    send parent, {:message, message}
-    {:noreply, {state, parent}}
-  end
-
   def container_id(ref, test) do
     IO.iodata_to_binary(["test_", path_to_id(ref, "ref"), "_", path_to_id(test, "test")])
   end
@@ -115,7 +107,7 @@ defmodule Resemblixir.Compare do
 
   defp setup_bypass(%__MODULE__{ scenario: test_name, breakpoint: breakpoint, images: %{ref: ref, test: test}} = state) do
     bypass = open_bypass()
-    Bypass.expect(bypass, "GET", http_path(test_name, breakpoint), &render_template(&1, ref, test, test_name))
+    Bypass.expect(bypass, "GET", http_path(test_name, breakpoint), &render_template(&1, test_name))
     Bypass.expect(bypass, "GET", IO.iodata_to_binary(["/ref/", test_name, ".png"]), &render_image(&1, ref))
     Bypass.expect(bypass, "GET", IO.iodata_to_binary(["/test/", test_name, ".png"]), &render_image(&1, test))
     Bypass.expect(bypass, "GET", "/resemble.js", &render_js/1)
@@ -126,7 +118,7 @@ defmodule Resemblixir.Compare do
     IO.iodata_to_binary(["/", test_name, "_", Atom.to_string(breakpoint)])
   end
 
-  defp render_template(conn, ref, test, test_name) do
+  defp render_template(conn, test_name) do
     Plug.Conn.resp(conn, 200, """
       <html>
         <head><script type="text/javascript" src="resemble.js"></script></head>
