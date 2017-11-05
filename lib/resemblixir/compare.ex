@@ -4,7 +4,7 @@ defmodule Resemblixir.Compare do
   use Wallaby.DSL
   use GenServer
 
-  alias Resemblixir.{Scenario, Screenshot}
+  alias Resemblixir.{Scenario, Screenshot, Breakpoint}
   defstruct [:test, :scenario, :breakpoint, :mismatch_percentage, :bypass, :session,
              :raw_mismatch_percentage, :is_same_dimensions, :analysis_time,
              dimension_difference: %{height: nil, width: nil},
@@ -25,76 +25,44 @@ defmodule Resemblixir.Compare do
   }
 
   @type error :: {:javascript_error, String.t} | :timeout
-  @type result :: {:ok, __MODULE__.t} | {:error, error, __MODULE__.t}
+  @type success :: {:ok, __MODULE__.t}
+  @type failure :: {:error, error, __MODULE__.t}
+  @type result :: success | failure
 
   @spec compare(test_image_path :: String.t, Scenario.t, breakpoint :: atom, ref_image_path :: String.t) :: result
   def compare(%Screenshot{path: test_image_path}, %Scenario{name: test_name}, breakpoint, ref_image_path) when is_binary(test_image_path) do
     %__MODULE__{ scenario: test_name, breakpoint: breakpoint, images: %{ref: ref_image_path, test: test_image_path} }
     |> setup_bypass()
     |> do_compare()
+  rescue
+    error -> {:error, error}
   end
 
-  defp do_compare(%__MODULE__{bypass: %Bypass{}} = state) do
-    {:ok, session} = Wallaby.start_session()
-    {:ok, pid} = GenServer.start_link(__MODULE__, {%{state | session: session}, self()});
-    await_result(state, pid)
+  def server_name(%__MODULE__{scenario: <<scenario::binary>>, breakpoint: breakpoint}) when is_atom(breakpoint) do
+    %Scenario{name: scenario}
+    |> Breakpoint.server_name(breakpoint)
+    |> Module.concat(:Compare)
   end
 
-  defp await_result(%__MODULE__{images: %{ref: ref}} = state, pid) when is_binary(ref) do
-    receive do
-      {:result, "caught error:" <> error} ->
-        {:error, {:javascript_error, error}, state}
-      {:result, "not returned"} ->
-        await_result(state, pid)
-      {:result, %{"data" => %{}, "diff" => _} = result} ->
-        analyzed = result
-        |> Poison.encode!()
-        |> Poison.decode(keys: :atoms!)
-        |> format(state)
-        |> analyze_result()
-        GenServer.stop(pid)
-        analyzed
-    after
-      5000 ->
-        GenServer.stop(pid)
-        {:error, :timeout, state}
-    end
-  end
-
-  def init({%__MODULE__{} = state, parent}) when is_pid(parent) do
-    send self(), :start
-    {:ok, {state, parent}}
-  end
-
-  def handle_info(:start, {%__MODULE__{bypass: %Bypass{port: port}, session: session, scenario: test_name, breakpoint: breakpoint} = state, parent}) do
+  defp do_compare(%__MODULE__{bypass: %Bypass{port: port}, scenario: test_name, breakpoint: breakpoint} = state) do
     # TODO: use :poolboy.transation to run  
-
-    session = session
+    {:ok, session} = Wallaby.start_session()
+    session
     |> Wallaby.Browser.visit("http://localhost:" <> Integer.to_string(port) <> http_path(test_name, breakpoint))
     |> Wallaby.Browser.assert_has(Wallaby.Query.css("#result"))
-    send self(), {:check_result, session}
-    {:noreply, {%{state | session: session}, parent}}
-  end
-  def handle_info({:check_result, session}, {%__MODULE__{} = state, parent}) do
-    session = Wallaby.Browser.execute_script(session, "return window.RESULT", &report_result(&1, parent, session))
-    {:noreply, {%{state | session: session}, parent}}
-  end
-  def handle_info(:end_session, {%__MODULE__{session: %Wallaby.Session{} = session} = state, parent}) do
-    Wallaby.end_session(session)
-    {:noreply, {state, parent}}
+    |> Wallaby.Browser.execute_script("return window.RESULT", &send_result(&1, state) )
+    |> Wallaby.end_session()
+  rescue
+    error -> {:error, error}
   end
 
-  def report_result("not returned", _parent, session) do
-    send self(), {:check_result, session}
-  end
-
-  def report_result(nil, _parent, session) do
-    send self(), {:check_result, session}
-  end
-
-  def report_result(%{"diff" => _, "data" => _} = result, parent, _session) do
-    send self(), :end_session
-    send parent, {:result, result}
+  def send_result(%{"data" => %{}, "diff" => _} = response, %__MODULE__{} = state) do
+    result = response
+    |> Poison.encode!()
+    |> Poison.decode(keys: :atoms!)
+    |> format(state)
+    |> analyze_result()
+    send self(), {:result, result}
   end
 
   def container_id(ref, test) do
@@ -182,8 +150,8 @@ defmodule Resemblixir.Compare do
   end
 
   def format({:ok, %{diff: diff, data: comparison}}, %__MODULE__{} = data), do: do_format(data, diff, comparison)
-  def format({:error, error}), do: {:error, error}
-  def format(error), do: {:error, {:unexpected_error, error}}
+  def format({:error, error}, %__MODULE__{} = data), do: {:error, {:json_error, error, data}}
+  def format(error, %__MODULE__{} = data), do: {:error, {{:unexpected_error, error}, data}}
 
   defp do_format(%__MODULE__{} = data, diff, %{
       misMatchPercentage: mismatch, rawMisMatchPercentage: raw_mismatch,
@@ -199,7 +167,7 @@ defmodule Resemblixir.Compare do
                      analysis_time: time,
                      images: Map.put(data.images, :diff, diff)}
 
-  defp analyze_result({:error, error}), do: {:error, {:json_error, error}}
+  defp analyze_result({:error, error}), do: {:error, error}
   defp analyze_result(%__MODULE__{images: %{diff: nil}} = result), do: {:ok, result}
   defp analyze_result(%__MODULE__{images: %{test: path, diff: diff} = images} = result) when is_binary(diff) do
     diff_path = Path.join([Path.dirname(path), ["diff_", Path.basename(path, "")]])

@@ -1,107 +1,115 @@
 defmodule Resemblixir.Scenario do
-  use GenServer
-  alias Resemblixir.{Breakpoint, Compare}
-  defstruct [:name, :url, :breakpoints, :folder, status_code: 200, passed: [], failed: []]
+  use Supervisor
+  alias Resemblixir.{Breakpoint, Compare, Opts, MissingReferenceError}
+  defstruct [:name, :url, :breakpoints, :folder, :parent, :pid, status_code: 200, passed: [], failed: [], not_run: [], tasks: []]
 
   @type t :: %__MODULE__{
+    parent: pid,
+    pid: pid,
     url: String.t,
     breakpoints: Keyword.t,
     status_code: integer,
     folder: String.t,
-    passed: [Compare.t],
-    failed: [Compare.t]
+    tasks: [],
+    passed: [Breakpoint.t],
+    failed: [Breakpoint.t],
+    not_run: [Breakpoint.t]
   }
+  @type state :: {__MODULE__.t, Opts.t}
+  @type success :: {:ok, __MODULE__.t}
+  @type failure :: {:error, __MODULE__.t | Resemblixir.UrlError.t}
 
-  def run(%__MODULE__{breakpoints: %{}, name: name, url: url, folder: "/" <> _} = scenario)
-  when is_binary(name) and is_binary(url) do
-    url
-    |> HTTPoison.get()
-    |> do_run(scenario)
-  end
-
-  defp do_run({:ok, %HTTPoison.Response{status_code: status_code}}, %__MODULE__{breakpoints: %{} = breakpoints, folder: "/" <> _, status_code: status_code} = scenario) do
-    breakpoints
-    |> Enum.map(& Task.async(fn -> Breakpoint.run(&1, scenario) end))
-    |> Task.yield_many()
-    |> Enum.reduce(scenario, &await_breakpoint/2)
-    |> finish()
-  end
-  defp do_run({:error, %HTTPoison.Error{id: nil, reason: _}}, %__MODULE__{} = scenario) do
-    raise %Resemblixir.UrlError{scenario: scenario}
-  end
-
-  defp await_breakpoint({_task, {:ok, {:ok, {name, %Compare{} = breakpoint}}}}, %__MODULE__{} = result) do
-    %{result | passed: [{name, breakpoint} | result.passed]}
-  end
-  defp await_breakpoint({_task, {:ok, {:error, {name, %Compare{} = breakpoint}}}}, %__MODULE__{} = result) do
-    %{result | failed: [{name, breakpoint}| result.failed]}
-  end
-  defp await_breakpoint({_task, {:ok, {:error, {name, %Resemblixir.MissingReferenceError{} = breakpoint}}}}, %__MODULE__{} = result) do
-    %{result | failed: [{name, breakpoint}| result.failed]}
-  end
-  defp await_breakpoint({task, {:exit, reason}}, %__MODULE__{} = result) do
-    %{result | failed: [{:exit, reason, task} | result.failed]}
-  end
-  defp await_breakpoint({task, nil}, %__MODULE__{} = result) do
-    Task.shutdown(task, :brutal_kill)
-    %{result | failed: [{:timeout, task} | result.failed]}
-  end
-
-  defp finish(%__MODULE__{failed: []} = scenario), do: {:ok, scenario}
-  defp finish(%__MODULE__{} = scenario), do: {:error, scenario}
-
-  def init({%__MODULE__{} = scenario, parent}) do
-    send self(), :start
-    {:ok, {scenario, parent, Enum.map(scenario.breakpoints, fn {name, _width} ->
-      {name, :not_finished}
-    end)}}
-  end
-
-  def handle_info(:start, {%__MODULE__{} = scenario, parent, remaining}) do
-    Enum.each(scenario.breakpoints, fn {name, width} ->
-      send self(), {:start_breakpoint, {name, width}}
-    end)
-    {:noreply, {scenario, parent, remaining}}
-  end
-
-  def handle_info({:start_breakpoint, breakpoint}, {scenario, parent, remaining}) do
-    Task.start_link(Breakpoint, :run, [breakpoint, scenario, self()])
-    {:noreply, {scenario, parent, remaining}}
-  end
-
-  def handle_info({:ok, {breakpoint,  %Compare{breakpoint: breakpoint} = result}}, {scenario, parent, remaining}) do
-    scenario = %{scenario | passed: [{breakpoint, result} | scenario.passed]}
-    maybe_stop_process({scenario, parent, remaining}, breakpoint)
-  end
-
-  def handle_info({:error, {breakpoint, error}}, {scenario, parent, remaining}) do
-    send parent, {:error, scenario, {breakpoint, error}}
-    scenario = %{scenario | failed: [{breakpoint, error} | scenario.failed]}
-    maybe_stop_process({scenario, parent, remaining}, breakpoint)
-  end
-
-  def handle_info({:DOWN, _ref, :process, _pid, :normal}, state) do
-    {:noreply, state}
-  end
-  def handle_info({:EXIT, _ref, :process, _pid, :normal}, state) do
-    {:noreply, state}
-  end
-
-  def maybe_stop_process({scenario, parent, remaining}, breakpoint) do
-    case {Keyword.pop_first(remaining, breakpoint), scenario.failed} do
-      {{_, []}, []} ->
-        {:stop, :normal, {scenario, parent, []}}
-      {{_, []}, failed} when length(failed) > 0 ->
-        {:stop, :normal, {scenario, parent, []}}
-      {{_, unfinished}, _} ->
-        {:noreply, {scenario, parent, unfinished}}
+  @spec run(__MODULE__.t, Opts.t) :: success | failure
+  def run(%__MODULE__{status_code: code,
+                      breakpoints: %{},
+                      name: <<_::binary>>,
+                      url: <<url::binary>>,
+                      folder: "/" <> _} = scenario, %Opts{} = opts)
+                      when is_integer(code) do
+    with {:ok, %HTTPoison.Response{status_code: ^code}} <- HTTPoison.get(url) do
+      scenario = %{scenario | parent: self()}
+      {:ok, pid} = GenServer.start_link(__MODULE__, {scenario, opts})
+      {:ok, %{scenario | pid: pid}}
+    else
+      {:error, error} ->
+        {:error, %Resemblixir.UrlError{scenario: scenario, error: error}}
     end
   end
 
-  def terminate(:normal, {%__MODULE__{failed: []} = scenario, parent, []}) do
-    send parent, {:ok, scenario}
+  def init({%__MODULE__{breakpoints: breakpoints} = scenario, %Opts{} = opts}) do
+    for breakpoint <- breakpoints do
+      send self(), {:start_breakpoint, breakpoint}
+    end
+    {:ok, {scenario, opts}}
   end
-  def terminate(:normal, {scenario, parent, []}) do
-    send parent, {:error, scenario}
+
+  def handle_info({:start_breakpoint, {name, width}}, {%__MODULE__{tasks: tasks} = scenario, opts}) do
+    task = %Breakpoint{} = Breakpoint.run({name, width}, scenario)
+    scenario = %{scenario | tasks: [{name, task} | tasks]}
+    {:noreply, {scenario, opts}}
+  end
+  def handle_info(%Breakpoint{result: {:ok, %Compare{}}} = result, {scenario, opts}) do
+    result
+    |> update_scenario(scenario)
+    |> maybe_stop(opts)
+  end
+  def handle_info(%Breakpoint{result: {:error, _}} = result, {scenario, opts}) do
+    result
+    |> update_scenario(scenario)
+    |> maybe_stop(opts)
+  end
+  def handle_info(:finish, {scenario, opts}) do
+    scenario = scenario.tasks
+    |> Keyword.values()
+    |> Enum.reduce(scenario, &update_scenario/2)
+    send scenario.parent, {:result, scenario}
+    {:noreply, {scenario, opts}}
+  end
+
+  @spec update_scenario(Breakpoint.t, __MODULE__.t) :: __MODULE__.t
+  defp update_scenario(%Breakpoint{name: name} = breakpoint, %__MODULE__{} = scenario) do
+    {_, remaining} = Keyword.pop(scenario.tasks, name)
+    scenario
+    |> Map.put(:tasks, remaining)
+    |> do_update_scenario(%{breakpoint | scenario: nil})
+  end
+
+  defp do_update_scenario(%__MODULE__{} = scenario, %Breakpoint{result: {:ok, %Compare{}}} = breakpoint) do
+    %{scenario | passed: [breakpoint | scenario.passed]}
+  end
+  defp do_update_scenario(%__MODULE__{} = scenario, %Breakpoint{result: {:error, %Compare{}}} = breakpoint) do
+    %{scenario | failed: [breakpoint | scenario.failed]}
+  end
+  defp do_update_scenario(%__MODULE__{} = scenario, %Breakpoint{result: {:error, %MissingReferenceError{}}} = breakpoint) do
+    %{scenario | failed: [breakpoint | scenario.failed]}
+  end
+  defp do_update_scenario(%__MODULE__{} = scenario, %Breakpoint{result: :not_run} = breakpoint) do
+    %{scenario | not_run: [breakpoint | scenario.not_run]}
+  end
+
+  defp do_update_scenario(%__MODULE__{} = scenario, message) do
+    %{scenario | failed: [message | scenario.failed]}
+  end
+
+  @spec maybe_stop(__MODULE__.t, Opts.t) :: {:noreply, state} | {:stop, :normal, state}
+  defp maybe_stop(%__MODULE__{tasks: [], failed: []} = scenario, opts) do
+    # all breakpoints finished, no failures
+    send self(), :finish
+    {:noreply, {scenario, opts}}
+  end
+  defp maybe_stop(%__MODULE__{tasks: []} = scenario, opts) do
+    # all breakpoints finished, some failures
+    send self(), :finish
+    {:noreply, {scenario, opts}}
+  end
+  defp maybe_stop(%__MODULE__{failed: [_|_]} = scenario, %Opts{raise_on_error: true} = opts) do
+    # there is an error and we want to raise on any error --
+    # stop all the other tasks, which will eventually trigger pattern #2
+    send self(), :finish
+    {:noreply, {scenario, opts}}
+  end
+  defp maybe_stop(%__MODULE__{} = scenario, %Opts{} = opts) do
+    # tasks remaining
+    {:noreply, {scenario, opts}}
   end
 end

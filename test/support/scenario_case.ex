@@ -4,7 +4,6 @@ defmodule Resemblixir.ScenarioCase do
 
   setup tags do
     {:ok, ref: ref_folder, tests: tests_folder} = ensure_folders()
-    id = generate_id()
 
     bypass = Bypass.open()
 
@@ -16,7 +15,7 @@ defmodule Resemblixir.ScenarioCase do
     else
       scenario_count = tags[:scenario_count] || 1
       assert is_integer(scenario_count)
-      for n <- 1..scenario_count, do: generate_scenario(id, n, test_folder, bypass, tags)
+      for n <- 1..scenario_count, do: generate_scenario(n, test_folder, bypass, tags)
     end
 
     unless tags[:remove_images] == false do
@@ -30,7 +29,6 @@ defmodule Resemblixir.ScenarioCase do
           reference_folder: ref_folder,
           test_folder: test_folder,
           test_name: test_name,
-          id: id,
           scenarios: scenarios,
           bypass: bypass}
   end

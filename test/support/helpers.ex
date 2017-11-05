@@ -67,8 +67,19 @@ defmodule Resemblixir.TestHelpers do
     |> Integer.to_string()
   end
 
-  def scenario_name(id, int \\ 1) when is_integer(int) do
-    IO.iodata_to_binary(["scenario_", id, "_", Integer.to_string(int)])
+  def scenario_name(name, int \\ 1) when is_integer(int) and is_atom(name) do
+    name = name
+           |> Atom.to_string()
+           |> String.replace(" ", "_")
+           |> String.replace(":", "")
+           |> String.replace("{", "")
+           |> String.replace("}", "")
+           |> String.replace("%", "")
+           |> String.replace(",", "")
+           |> String.replace("/", "")
+           |> String.replace(".", "")
+           |> String.slice(0..40)
+    IO.iodata_to_binary([name, "_", Integer.to_string(int)])
   end
 
   def test_paths do
@@ -80,7 +91,10 @@ defmodule Resemblixir.TestHelpers do
   def setup_bypass(%Scenario{name: name} = scenario, %Bypass{} = bypass, page \\ 1, html_string \\ nil) when is_integer(page) do
     {:ok, image_path} = image_path(scenario, page)
     Bypass.expect bypass, "GET", image_path, fn conn ->
-      Plug.Conn.resp(conn, 200, File.read!(image_path))
+      case File.read(image_path) do
+        {:ok, file} -> Plug.Conn.resp(conn, 200, file)
+        {:error, error} -> Plug.Conn.resp(conn, 404, inspect(error))
+      end
     end
     Bypass.expect bypass, "GET", "/" <> name, fn conn ->
       Plug.Conn.resp(conn, 200, html_string || html(scenario, image_path))
@@ -90,9 +104,8 @@ defmodule Resemblixir.TestHelpers do
   def breakpoints(nil), do: breakpoints(1)
   def breakpoints(count), do: @breakpoints |> Enum.take(count) |> Enum.into(%{})
 
-  def generate_scenario(id, int, "/" <> _ = test_folder, %Bypass{port: port} = bypass, tags \\ %{})
-  when is_binary(id) and is_integer(int) do
-    scenario_name = scenario_name(id, int)
+  def generate_scenario(int, "/" <> _ = test_folder, %Bypass{port: port} = bypass, tags \\ %{}) when is_integer(int) do
+    scenario_name = scenario_name(tags.test, int)
     scenario = %Scenario{
       name: scenario_name,
       breakpoints: tags[:breakpoints] || breakpoints(tags[:breakpoint_count]),

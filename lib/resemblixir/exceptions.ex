@@ -1,11 +1,15 @@
 defmodule Resemblixir.NoScenariosError do
-  defexception [message: "No scenarios provided for Resemblixir to run! Assign scenarios to :scenarios in your :resemblixir config."]
-  def exception(_) do
-    %__MODULE__{}
+  @type t :: %__MODULE__{}
+  defexception [:message]
+  def message(_) do
+    "No scenarios provided for Resemblixir to run! Assign scenarios to :scenarios in your :resemblixir config."
   end
 end
 
 defmodule Resemblixir.ScenarioConfigError do
+  @type t :: %__MODULE__{
+    scenarios: [Resemblixir.Scenario.t]
+  }
   defexception scenarios: []
   def message(_args) do
 
@@ -26,6 +30,10 @@ defmodule Resemblixir.ScenarioConfigError do
 end
 
 defmodule Resemblixir.MissingReferenceError do
+  @type t :: %__MODULE__{
+    path: String.t,
+    breakpoint: atom
+  }
   defexception [:message, :path, :breakpoint]
   def exception(args) do
     %__MODULE__{message: "Reference file not found at path: #{args[:path]}"}
@@ -33,6 +41,9 @@ defmodule Resemblixir.MissingReferenceError do
 end
 
 defmodule Resemblixir.NoBreakpointsError do
+  @type t :: %__MODULE__{
+    scenario: Resemblixir.Scenario.t
+  }
   defexception [:message, :scenario]
   def exception(args) do
     %__MODULE__{message: "Scenario #{args[:scenario]} has no breakpoints; please define a Keyword list of breakpoints for this scenario."}
@@ -40,13 +51,26 @@ defmodule Resemblixir.NoBreakpointsError do
 end
 
 defmodule Resemblixir.UrlError do
-  defexception [:message, :scenario]
-  def message(_args) do
-    "Could not access url! Did you remember to start your server?"
+  @type t :: %__MODULE__{
+    scenario: Resemblixir.Scenario.t,
+    error: HTTPoison.Error.t
+  }
+  defexception [:message, :scenario, :error]
+  def message(args) do
+    """
+    Could not access url! Did you remember to start your server?
+
+    Scenario: #{inspect args.scenario}
+    Error: #{inspect args.error}
+    """
   end
 end
 
 defmodule Resemblixir.TestFailure do
+  @type t :: %__MODULE__{
+    passed: [Resemblixir.Scenario.t],
+    failed: [Resemblixir.Scenario.t],
+  }
   defexception [:passed, :failed, :message]
   def message(args) do
     [
@@ -72,10 +96,10 @@ defmodule Resemblixir.TestFailure do
     ]
   end
 
-  defp failed_breakpoint({name, %Resemblixir.MissingReferenceError{}}) do
+  defp failed_breakpoint(%Resemblixir.Breakpoint{name: name, result: {:error, %Resemblixir.MissingReferenceError{}}}) do
     ["\s\s\s\s", Atom.to_string(name), " -- reference image missing\n"]
   end
-  defp failed_breakpoint({name, %Resemblixir.Compare{} = data}) do
+  defp failed_breakpoint(%Resemblixir.Breakpoint{name: name, result: {:error, %Resemblixir.Compare{} = data}}) do
     [
       "\s\s\s\s", Atom.to_string(name), " -- image mismatch:\n",
       data
