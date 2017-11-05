@@ -10,8 +10,19 @@ defmodule Resemblixir.MixTaskTest do
       scenarios = scenarios
                   |> Enum.map(&Map.from_struct/1)
                   |> Enum.map(& Map.delete(&1, :folder))
-      Mix.Tasks.Resemblixir.run(["--no-log"], scenarios)
+      Mix.Tasks.Resemblixir.run([], scenarios)
       assert_received {:mix_shell, :info, ["All scenarios passed!" <> _]}
+    end
+
+    test "works when scenarios is nil", %{scenarios: scenarios} do
+      scenarios = scenarios
+                  |> Enum.map(&Map.from_struct/1)
+                  |> Enum.map(& Map.delete(&1, :folder))
+      old_env = Application.get_env(:resemblixir, :scenarios)
+      Application.put_env(:resemblixir, :scenarios, scenarios)
+      assert {:ok, %Resemblixir{}} = Mix.Tasks.Resemblixir.run([])
+      Application.put_env(:resemblixir, :scenarios, old_env)
+
     end
 
     @tag generate_references: false
