@@ -1,6 +1,6 @@
 defmodule Resemblixir do
   use GenServer
-  alias Resemblixir.{Scenario, Paths, Opts, NoScenariosError, ScenarioConfigError}
+  alias Resemblixir.{Scenario, Paths, Opts, NoScenariosError, ScenarioConfigError, UrlError}
 
   defstruct [:folder, :parent, passed: [], failed: [], in_progress: [], queue: [], opts: %Opts{}]
 
@@ -110,14 +110,9 @@ defmodule Resemblixir do
     {:noreply, %{state | in_progress: [{String.to_atom(scenario.name), started} | state.in_progress]}}
   end
 
-  def handle_info({:result, %Scenario{failed: [_ | _]} = scenario}, %__MODULE__{opts: %Opts{raise_on_error: true}} = state) do
-    state = update_state(scenario, state)
-    send self(), :finish
-    {:noreply, state}
-  end
-  def handle_info({:result, %Scenario{} = scenario}, %__MODULE__{} = state) do
-    state = update_state(scenario, state)
-    send self(), :ready
+  def handle_info({:result, result}, %__MODULE__{} = state) do
+    state = update_state(result, state)
+    send self(), status_message(result, state.opts.raise_on_error?)
     {:noreply, state}
   end
   def handle_info(:finish, %__MODULE__{in_progress: [{_, %Scenario{} = scenario} | remaining]} = state) do
@@ -134,6 +129,23 @@ defmodule Resemblixir do
     {:noreply, state}
   end
 
+  defp status_message(%Scenario{failed: failed}, true) when length(failed) > 0 do
+    :finish
+  end
+  defp status_message({:error, %UrlError{}}, true) do
+    :finish
+  end
+  defp status_message(_, _) do
+    :ready
+  end
+
+  defp update_state({:error, %UrlError{} = error}, %__MODULE__{} = state) do
+    {_, in_progress} = Keyword.pop(state.in_progress, String.to_atom(error.scenario.name))
+
+    state
+    |> Map.put(:in_progress, in_progress)
+    |> do_update_state(error)
+  end
   defp update_state(%Scenario{} = scenario, %__MODULE__{} = state) do
     if scenario.pid && Process.alive?(scenario.pid), do: GenServer.stop(scenario.pid)
 
@@ -142,6 +154,9 @@ defmodule Resemblixir do
     state
     |> Map.put(:in_progress, in_progress)
     |> do_update_state(scenario)
+  end
+  defp do_update_state(%__MODULE__{} = state, %UrlError{} = error) do
+    %{state | failed: [error | state.failed]}
   end
   defp do_update_state(%__MODULE__{} = state, %Scenario{failed: []} = scenario) do
     %{state | passed: [scenario | state.passed]}

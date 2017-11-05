@@ -114,7 +114,7 @@ defmodule Resemblixir.TestHelpers do
     }
 
     unless tags[:generate_references] == false do
-      setup_bypass(scenario, bypass, int)
+      unless tags[:setup_bypass] == false, do: setup_bypass(scenario, bypass, int)
       :ok = scenario.breakpoints
             |> Enum.map(fn breakpoint ->
               Task.async(fn -> 

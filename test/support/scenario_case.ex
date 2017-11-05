@@ -5,7 +5,7 @@ defmodule Resemblixir.ScenarioCase do
   setup tags do
     {:ok, ref: ref_folder, tests: tests_folder} = ensure_folders()
 
-    bypass = Bypass.open()
+    bypass = if tags[:setup_bypass] == false, do: %Bypass{port: 0}, else: Bypass.open()
 
     assert {:ok, name: test_name, folder: test_folder} = test_paths()
     assert test_folder == Path.join([File.cwd!(), "priv", "resemblixir", "test_images", test_name])

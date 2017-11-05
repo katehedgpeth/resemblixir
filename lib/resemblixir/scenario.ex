@@ -31,7 +31,7 @@ defmodule Resemblixir.Scenario do
       {:ok, pid} = GenServer.start_link(__MODULE__, {scenario, opts})
       {:ok, %{scenario | pid: pid}}
     else
-      {:error, error} ->
+      {_ok_or_error, error} ->
         {:error, %Resemblixir.UrlError{scenario: scenario, error: error}}
     end
   end
@@ -102,7 +102,7 @@ defmodule Resemblixir.Scenario do
     send self(), :finish
     {:noreply, {scenario, opts}}
   end
-  defp maybe_stop(%__MODULE__{failed: [_|_]} = scenario, %Opts{raise_on_error: true} = opts) do
+  defp maybe_stop(%__MODULE__{failed: [_|_]} = scenario, %Opts{raise_on_error?: true} = opts) do
     # there is an error and we want to raise on any error --
     # stop all the other tasks, which will eventually trigger pattern #2
     send self(), :finish

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Resemblixir do
 
   @spec do_run(Opts.t, [map] | nil) :: :ok
   defp do_run(_args, scenarios) when is_list(scenarios) or is_nil(scenarios) do
-    {:ok, _pid} = Resemblixir.run(scenarios, %Opts{raise_on_error: false})
+    {:ok, _pid} = Resemblixir.run(scenarios, %Opts{raise_on_error?: false})
     await_result()
   end
 

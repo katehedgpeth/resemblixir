@@ -1,5 +1,5 @@
 defmodule ResemblixirTest do
-  alias Resemblixir.{TestHelpers, Scenario, Compare, MissingReferenceError, Breakpoint, TestFailure, Opts, ScenarioConfigError}
+  alias Resemblixir.{TestHelpers, Scenario, Compare, MissingReferenceError, Breakpoint, TestFailure, Opts, ScenarioConfigError, UrlError}
   use Resemblixir.ScenarioCase, async: false
 
   describe "get_scenarios/0" do
@@ -54,13 +54,9 @@ defmodule ResemblixirTest do
     @tag scenario_count: 2
     test "returns :error on failure", %{scenarios: [%Scenario{name: name_1} = scenario_1, %Scenario{name: name_2} = scenario_2]} do
       TestHelpers.remove_scenario_references(scenario_1)
-      try do
-        [scenario_1, scenario_2]
-        |> Enum.map(&Map.from_struct/1)
-        |> Resemblixir.run(%Opts{raise_on_error: false})
-      catch
-        error -> error
-      end
+      [scenario_1, scenario_2]
+      |> Enum.map(&Map.from_struct/1)
+      |> Resemblixir.run(%Opts{raise_on_error?: false})
       assert_receive {:error, %TestFailure{failed: [failed], passed: [passed]}}, 5_000
       assert failed.name == name_1
       assert failed.passed == []
@@ -69,6 +65,32 @@ defmodule ResemblixirTest do
       assert passed.name == name_2
       assert passed.failed == []
       assert [%Breakpoint{result: {:ok, %Compare{}}}] = passed.passed
+    end
+
+    @tag setup_bypass: false
+    test "works when site is unreachable", %{scenarios: scenarios} do
+      scenarios
+      |> Enum.map(&Map.from_struct/1)
+      |> Resemblixir.run()
+      assert_receive {:error, %TestFailure{failed: [failed], passed: []}}, 5_000
+      assert %UrlError{error: error} = failed
+      assert %HTTPoison.Error{} = error
+    end
+
+    @tag setup_bypass: false
+    test "works when url returns bad status code", %{scenarios: scenarios} do
+      bypass = Bypass.open()
+      Bypass.expect(bypass, fn conn -> Plug.Conn.resp(conn, 404, "") end)
+      scenarios
+      |> Enum.map(fn scenario ->
+        scenario
+        |> Map.from_struct()
+        |> Map.put(:url, "http://localhost:#{bypass.port}")
+      end)
+      |> Resemblixir.run()
+      assert_receive {:error, %TestFailure{failed: [failed], passed: []}}, 5_000
+      assert %UrlError{error: error} = failed
+      assert %HTTPoison.Response{status_code: 404} = error
     end
   end
 end
