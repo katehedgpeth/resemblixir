@@ -22,7 +22,6 @@ defmodule Resemblixir.MixTaskTest do
       Application.put_env(:resemblixir, :scenarios, scenarios)
       assert {:ok, %Resemblixir{}} = Mix.Tasks.Resemblixir.run([])
       Application.put_env(:resemblixir, :scenarios, old_env)
-
     end
 
     @tag generate_references: false
@@ -47,6 +46,19 @@ defmodule Resemblixir.MixTaskTest do
     test "raises Resemblixir.NoScenariosError when there are no tests to run" do
       Mix.Tasks.Resemblixir.run([], [])
       assert_receive {:mix_shell, :error, ["No scenarios" <> _]}
+    end
+
+    @tag setup_bypass: false
+    test "works when url is unreachable", %{scenarios: scenarios} do
+
+      scenarios = Enum.map(scenarios, fn scenario ->
+        scenario
+        |> Map.from_struct()
+        |> Map.delete(:folder)
+      end)
+      Mix.Tasks.Resemblixir.run([], scenarios)
+      assert_receive {:mix_shell, :error, ["\n Some scenarios did not pass" <> message]}
+      assert message =~ "could not reach url"
     end
   end
 end

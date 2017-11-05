@@ -95,6 +95,12 @@ defmodule Resemblixir.TestFailure do
       Enum.map(scenario.passed, fn {name, _} -> ["\s\s\s\s", Atom.to_string(name), "\n"] end)
     ]
   end
+  defp failed_scenario(%Resemblixir.UrlError{scenario: scenario, error: %HTTPoison.Error{}}) do
+    ["\s\s", scenario.name, ": ", "could not reach url: ", scenario.url]
+  end
+  defp failed_scenario(%Resemblixir.UrlError{scenario: scenario, error: %HTTPoison.Response{status_code: code}}) do
+    ["\s\s", scenario.name, ": bad status code ", Integer.to_string(code)]
+  end
 
   defp failed_breakpoint(%Resemblixir.Breakpoint{name: name, result: {:error, %Resemblixir.MissingReferenceError{}}}) do
     ["\s\s\s\s", Atom.to_string(name), " -- reference image missing\n"]
