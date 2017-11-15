@@ -18,7 +18,7 @@ defmodule ResemblixirWeb.Channel do
 
   defp setup do
     config = Application.get_all_env(:resemblixir)
-    screenshot_dir = Application.app_dir(:resemblixir, "priv/screenshots/test")
+    screenshot_dir = Application.app_dir(:resemblixir, "priv/static/images/test")
     screenshot_dir
     |> File.ls!()
     |> Enum.each(&File.rm/1)
@@ -65,7 +65,7 @@ defmodule ResemblixirWeb.Channel do
       broadcast socket, "test_image_ready", params
     else
       broadcast socket, "breakpoint_started", params
-      do_get_breakpoint(params, socket)
+      take_screenshot(params, socket)
     end
   end
 
@@ -76,39 +76,35 @@ defmodule ResemblixirWeb.Channel do
     |> IO.iodata_to_binary()
   end
 
-  def do_get_breakpoint(params, socket) do
-    case take_screenshot(params) do
-      {:ok, screenshot} ->
-        IO.inspect screenshot, label: "screenshot"
-        broadcast! socket, "test_image_ready", Map.put(params, :screenshot, screenshot)
-      {:error, error} ->
-        broadcast! socket, "error", error
-    end
-  rescue
-    error ->
-      broadcast! socket, "error", error
-  end
-
-  def take_screenshot(params) do
+  def take_screenshot(params, socket) do
     config = Application.get_all_env(:resemblixir)
     url = config[:router]
           |> Module.concat(Helpers)
           |> apply(:"#{params.view}_path", [config[:endpoint], params.template, params.query_params])
     IO.inspect url, label: "visiting"
     {:ok, session} = Wallaby.start_session()
-    result = case session
-                  |> Wallaby.Browser.resize_window(params.width, params.height)
-                  |> Wallaby.Browser.visit(url)
-                  |> Wallaby.Browser.take_screenshot(name: params.file_name) do
-      %Wallaby.Session{screenshots: [screenshot]} -> {:ok, screenshot}
-      error -> {:error, error}
-    end
-    case Wallaby.end_session(session) do
-      :ok -> result
-      error -> {:error, error}
-    end
+    session
+    |> Wallaby.Browser.resize_window(params.width, params.height)
+    |> Wallaby.Browser.visit(url)
+    |> Wallaby.Browser.find(Wallaby.Query.css("body"), &do_take_screenshot(&1, params, socket))
+    |> Wallaby.end_session()
   rescue
     error ->
-      {:error, error}
+      broadcast! socket, "error", error
+  end
+
+  defp do_take_screenshot(element, params, socket) do
+    if Wallaby.Browser.visible?(element.parent, Wallaby.Query.css("body")) do
+      case Wallaby.Browser.take_screenshot(element.parent, name: params.file_name) do
+        %Wallaby.Session{screenshots: [screenshot]} -> {:ok, screenshot}
+          broadcast! socket, "test_image_ready", Map.put(params, :screenshot, screenshot)
+        error ->
+          broadcast! socket, "error", error
+      end
+      element.parent
+    else
+      IO.inspect element, label: "not visible yet"
+      do_take_screenshot(element, params, socket)
+    end
   end
 end

@@ -19,11 +19,6 @@ defmodule ResemblixirWeb.Endpoint do
     plug Phoenix.CodeReloader
   end
 
-  unless Mix.env() == :prod do
-    plug Plug.Static, at: "/images",
-      from: {:resemblixir, "priv/screenshots"}
-  end
-
   plug Plug.RequestId
   plug Plug.Logger
 

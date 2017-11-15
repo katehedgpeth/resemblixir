@@ -34,7 +34,7 @@ config :resemblixir, ResemblixirWeb.Endpoint,
 config :resemblixir, ResemblixirWeb.Endpoint,
   live_reload: [
     patterns: [
-      ~r{priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$},
+      ~r{priv/static/.*(js|css)$},
       ~r{priv/gettext/.*(po)$},
       ~r{lib/resemblixir_web/views/.*(ex)$},
       ~r{lib/resemblixir_web/templates/.*(eex)$}

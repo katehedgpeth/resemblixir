@@ -33,7 +33,6 @@ config :resemblixir, :breakpoints, [
 
 config :resemblixir, :router, ResemblixirWeb.Router
 config :resemblixir, :endpoint, ResemblixirWeb.Endpoint
-config :resemblixir, :ref_url, "https://dev.mbtace.com"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
