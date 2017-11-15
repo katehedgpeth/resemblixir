@@ -9,7 +9,14 @@ defmodule Resemblixir.Mixfile do
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
+      package: package(),
       deps: deps()
+    ]
+  end
+
+  def package do
+    [
+      files: ~w(assets lib priv) ++ ~w(mix.exs package.json)
     ]
   end
 
