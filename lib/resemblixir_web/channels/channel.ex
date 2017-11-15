@@ -2,7 +2,6 @@ defmodule ResemblixirWeb.Channel do
   use ResemblixirWeb, :channel
 
   def join("resemblixir:test", _payload, socket) do
-    IO.inspect("got join request")
     send self(), :start
     {:ok, socket
           |> assign(:tests, %{})
@@ -17,6 +16,7 @@ defmodule ResemblixirWeb.Channel do
   end
 
   defp setup do
+    {:ok, _} = Application.ensure_all_started(:wallaby)
     config = Application.get_all_env(:resemblixir)
     screenshot_dir = Application.app_dir(:resemblixir, "priv/static/images/test")
     screenshot_dir
