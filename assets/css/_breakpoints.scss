@@ -1,0 +1,18 @@
+.container {
+  // scss-lint:disable ImportantRule
+  max-width: 90% !important;
+  width: 90% !important;
+}
+
+.breakpoint__images {
+  display: flex;
+}
+
+.breakpoint__image-container {
+  flex: 0 1 33%;
+}
+
+.breakpoint__image {
+  max-width: 100%;
+  height: auto;
+}

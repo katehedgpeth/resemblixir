@@ -1,0 +1,42 @@
+<h1>Resemblixir Test Results</h1>
+<%= for {view, templates} <- @config[:scenarios] do %>
+  <div class="scenario" id="<%= view %>">
+    <h1 class="scenario__name">
+      <span class="scenario__icon"></span>
+      <%= view %>
+    </h1>
+    <div class="scenario__templates">
+      <%= for {template, params} <- templates do %>
+        <div class="template" id="<%= view %>-<%= template %>">
+          <h3 class="template__name">
+            <span class="scenario__icon"></span>
+            <%= template %>
+          </h3>
+          <div class="template__breakpoints">
+            <%= for {breakpoint, _} <- @config[:breakpoints] do %>
+              <%= name = ResemblixirWeb.Channel.file_name(view, template, breakpoint) %>
+              <div class="breakpoint" id="<%= name %>">
+                <h4 class="breakpoint__name">
+                  <span class="breakpoint__icon"></span>
+                  <%= breakpoint %>
+                </h4>
+                <div class="breakpoint__images">
+                  <%= for type <- ["ref", "test", "diff"] do %>
+                    <div class="breakpoint__image-container">
+                      <%= Phoenix.HTML.Tag.img_tag(if type == "ref" do  "/images/reference/#{name}.png" else "" end,
+                                                   class: "img-fluid breakpoint__image breakpoint_image--ref",
+                                                   id: "#{name}-#{type}") %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+<script type="text/javascript">
+  window.run_tests = true;
+</script>
