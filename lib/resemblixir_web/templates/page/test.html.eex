@@ -6,7 +6,7 @@
       <%= view %>
     </h1>
     <div class="scenario__templates">
-      <%= for {template, params} <- templates do %>
+      <%= for {template, params} <- Enum.map(templates, &ResemblixirWeb.Channel.parse_template/1) do %>
         <div class="template" id="<%= view %>-<%= template %>">
           <h3 class="template__name">
             <span class="scenario__icon"></span>

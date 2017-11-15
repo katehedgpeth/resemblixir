@@ -32,11 +32,7 @@ defmodule ResemblixirWeb.Channel do
     for {view, templates} <- config[:scenarios],
         template <- templates,
         {breakpoint, {width, height}} <- config[:breakpoints] do
-      {page, query_params} = case template do
-        {page, query_params} when (is_map(query_params) or is_list(query_params))
-          and is_atom(page) -> {page, query_params}
-        page when is_atom(page) -> {page, []}
-      end
+      {page, query_params} = parse_template(template)
       %{
         view: view,
         template: page,
@@ -48,6 +44,10 @@ defmodule ResemblixirWeb.Channel do
       }
     end
   end
+
+  def parse_template({page, query_params}) when (is_map(query_params) or is_list(query_params))
+              and is_atom(page), do: {page, query_params}
+  def parse_template(page) when is_atom(page), do: {page, []}
 
   defp start_supervisor do
     opts = [name: __MODULE__.Supervisor,

@@ -19,7 +19,7 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :resemblixir, :scenarios, [
-  page: [{:index, %{run_backstop: false}}]
+  page: [:index]
 ]
 
 config :resemblixir, :breakpoints, [
@@ -33,6 +33,7 @@ config :resemblixir, :breakpoints, [
 
 config :resemblixir, :router, ResemblixirWeb.Router
 config :resemblixir, :endpoint, ResemblixirWeb.Endpoint
+config :resemblixir, :ref_url, "https://dev.mbtace.com"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
