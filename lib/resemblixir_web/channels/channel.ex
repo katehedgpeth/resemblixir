@@ -9,9 +9,11 @@ defmodule ResemblixirWeb.Channel do
   end
 
   def handle_info(:start, socket) do
-    setup()
-    |> make_params()
-    |> Enum.map(& Task.Supervisor.start_child(__MODULE__.Supervisor, __MODULE__, :get_breakpoint, [&1, socket]))
+    config = setup()
+    opts = [ordered: false, timeout: 10_000, max_concurrency: 2]
+    __MODULE__.Supervisor
+    |> Task.Supervisor.async_stream(make_params(config), &get_breakpoint(&1, socket), opts)
+    |> Enum.map(fn {:ok, _} -> :ok end)
     {:noreply, socket}
   end
 
@@ -63,8 +65,8 @@ defmodule ResemblixirWeb.Channel do
 
   defp start_supervisor do
     opts = [name: __MODULE__.Supervisor,
-            # max_seconds: 60_000 * 10
-            restart: :transient]
+            max_seconds: 60_000 * 10
+            restart: :temporary]
     case Task.Supervisor.start_link(opts) do
       {:ok, _pid} -> :ok
       {:error, {:already_started, _pid}} -> :ok
