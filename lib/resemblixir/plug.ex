@@ -10,6 +10,7 @@ defmodule Resemblixir.Plug do
     conn
     |> Phoenix.Controller.put_view(ResemblixirWeb.PageView)
     |> Phoenix.Controller.render("test.html", config: Application.get_all_env(:resemblixir))
+    |> Plug.Conn.halt()
   end
   def call(conn, opts), do: conn
 end
