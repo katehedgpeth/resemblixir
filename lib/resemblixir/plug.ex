@@ -12,6 +12,7 @@ defmodule Resemblixir.Plug do
   def call(%Plug.Conn{path_info: ["resemblixir", "test"]} = conn, _opts) do
     IO.inspect conn
     conn
+    |> Phoenix.Controller.put_layout({LayoutView, "app.html"})
     |> Phoenix.Controller.put_view(ResemblixirWeb.PageView)
     |> Phoenix.Controller.render("test.html", config: Application.get_all_env(:resemblixir))
     |> Plug.Conn.halt()
