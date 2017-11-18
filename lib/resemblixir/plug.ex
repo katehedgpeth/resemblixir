@@ -7,9 +7,9 @@ defmodule Resemblixir.Plug do
 
   def call(%Plug.Conn{path_info: ["resemblixir", "test"]} = conn, _opts) do
     IO.inspect conn
-    path = ResemblixirWeb.Endpoint.url()
-           |> Path.join(ResemblixirWeb.Router.Helpers.page_path(ResemblixirWeb.Endpoint, :test))
-    Plug.Conn.redirect(conn, path)
+    conn
+    |> Phoenix.Controller.put_view(ResemblixirWeb.PageView)
+    |> Phoenix.Controller.render("test.html")
   end
   def call(conn, opts), do: conn
 end
