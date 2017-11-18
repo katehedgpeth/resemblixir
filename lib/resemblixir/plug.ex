@@ -1,6 +1,10 @@
 defmodule Resemblixir.Plug do
   use Plug.Builder
 
+  plug Plug.Static,
+    at: "/", from: :resemblixir, gzip: false,
+    only: ~w(css fonts images js favicon.ico robots.txt)
+
   def init(_opts) do
     %{}
   end
