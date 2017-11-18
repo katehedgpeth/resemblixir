@@ -16,9 +16,12 @@ if (window.run_tests) {
     socket.disconnect()
     console.error("error", error)
   });
+  channel.on("breakpoint_started", data => {
+    console.log("breakpoint started", data);
+  })
   channel.on("test_image_ready", data => {
+    console.log("test image ready", data);
     try {
-      console.log("test image ready", data);
       const test_image = document.getElementById(data.file_name + "-test");
       test_image.src = "/images/test/" + data.file_name + ".png";
       const ref_image = document.getElementById(data.file_name + "-ref")
