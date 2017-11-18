@@ -65,7 +65,7 @@ defmodule ResemblixirWeb.Channel do
 
   defp start_supervisor do
     opts = [name: __MODULE__.Supervisor,
-            max_seconds: 60_000 * 10
+            max_seconds: 60_000 * 10,
             restart: :temporary]
     case Task.Supervisor.start_link(opts) do
       {:ok, _pid} -> :ok
