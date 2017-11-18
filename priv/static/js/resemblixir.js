@@ -11395,7 +11395,7 @@ if (window.run_tests) {
     };
   };
 
-  var _socket = new _phoenix.Socket("/socket", { params: { token: window.userToken } });
+  var _socket = new _phoenix.Socket("/resemblixir_socket", {});
 
   _socket.connect();
 
