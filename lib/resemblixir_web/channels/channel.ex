@@ -15,6 +15,18 @@ defmodule ResemblixirWeb.Channel do
     {:noreply, socket}
   end
 
+  def handle_info(:breakpoint_finished, socket) do
+    children = Task.Supervisor.children(__MODULE__.Supervisor)
+    |> IO.inspect(label: "ResemblixirWeb.Channel.Supervisor.children")
+
+    case children do
+      [] -> Application.stop(:wallaby)
+      _ -> :ok
+    end
+
+    {:noreply, socket}
+  end
+
   defp setup do
     {:ok, _} = Application.ensure_all_started(:wallaby)
     config = Application.get_all_env(:resemblixir)
@@ -88,6 +100,7 @@ defmodule ResemblixirWeb.Channel do
     |> Wallaby.Browser.visit(url)
     |> Wallaby.Browser.find(Wallaby.Query.css("body"), &do_take_screenshot(&1, params, socket))
     |> Wallaby.end_session()
+    send self(), :breakpoint_finished
   rescue
     error ->
       broadcast! socket, "error", error
