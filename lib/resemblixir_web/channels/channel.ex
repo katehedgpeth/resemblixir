@@ -103,6 +103,7 @@ defmodule ResemblixirWeb.Channel do
     send self(), :breakpoint_finished
   rescue
     error ->
+      Application.stop(:wallaby)
       broadcast! socket, "error", error
   end
 
