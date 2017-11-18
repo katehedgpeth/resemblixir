@@ -1,7 +1,7 @@
 defmodule ResemblixirWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :resemblixir
 
-  socket "/socket", ResemblixirWeb.UserSocket
+  socket "/resemblixir_socket", ResemblixirWeb.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #

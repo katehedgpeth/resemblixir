@@ -3,7 +3,7 @@ import resemble from "resemblejs"
 
 let socket;
 if (window.run_tests) {
-  let socket = new Socket("/socket", {params: {token: window.userToken}})
+  let socket = new Socket("/resemblixir_socket", {params: {token: window.userToken}})
 
   socket.connect()
 
