@@ -11410,9 +11410,12 @@ if (window.run_tests) {
     _socket.disconnect();
     console.error("error", error);
   });
+  channel.on("breakpoint_started", function (data) {
+    console.log("breakpoint started", data);
+  });
   channel.on("test_image_ready", function (data) {
+    console.log("test image ready", data);
     try {
-      console.log("test image ready", data);
       var test_image = document.getElementById(data.file_name + "-test");
       test_image.src = "/images/test/" + data.file_name + ".png";
       var ref_image = document.getElementById(data.file_name + "-ref");
